@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- Información para el navegador (no se ve en la página) -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de libros</title>
+
+  <!-- Estilos: aquí se decide cómo se ve la página (colores, tamaños, espacios) -->
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background-color: #f5f5f0;
+      color: #333333;
+      margin: 0;
+      padding: 40px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 2.2rem;
+    }
+
+    header p {
+      margin: 0;
+      color: #777777;
+    }
+
+    /* Rejilla que coloca las fichas de los libros una al lado de otra */
+    .catalogo {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Cada ficha de libro */
+    .libro {
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .libro h2 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+    }
+
+    .autor {
+      margin: 0 0 4px;
+      color: #555555;
+    }
+
+    .anio {
+      margin: 0 0 16px;
+      color: #999999;
+      font-size: 0.9rem;
+    }
+
+    .precio {
+      margin: auto 0 0;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #2a7a4b;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 48px;
+      color: #999999;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Cabecera: el título grande de la página -->
+  <header>
+    <h1>Catálogo de libros</h1>
+    <p>Una pequeña selección de clásicos</p>
+  </header>
+
+  <!-- Contenido principal: la lista de libros -->
+  <main class="catalogo">
+    <article class="libro">
+      <h2>Don Quijote de la Mancha</h2>
+      <p class="autor">Miguel de Cervantes</p>
+      <p class="anio">1605</p>
+      <p class="precio">19,95 €</p>
+    </article>
+
+    <article class="libro">
+      <h2>Cien años de soledad</h2>
+      <p class="autor">Gabriel García Márquez</p>
+      <p class="anio">1967</p>
+      <p class="precio">21,50 €</p>
+    </article>
+
+    <article class="libro">
+      <h2>1984</h2>
+      <p class="autor">George Orwell</p>
+      <p class="anio">1949</p>
+      <p class="precio">14,90 €</p>
+    </article>
+
+    <article class="libro">
+      <h2>Orgullo y prejuicio</h2>
+      <p class="autor">Jane Austen</p>
+      <p class="anio">1813</p>
+      <p class="precio">12,95 €</p>
+    </article>
+
+    <article class="libro">
+      <h2>El principito</h2>
+      <p class="autor">Antoine de Saint-Exupéry</p>
+      <p class="anio">1943</p>
+      <p class="precio">9,95 €</p>
+    </article>
+  </main>
+
+  <!-- Pie de página -->
+  <footer>
+    <p>Precios de ejemplo · Mi primer proyecto</p>
+  </footer>
+</body>
+</html>
