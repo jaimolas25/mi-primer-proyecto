@@ -79,6 +79,122 @@
       color: #999999;
       font-size: 0.85rem;
     }
+
+    /* Tasador: la caja para escanear o escribir un ISBN */
+    .tasador {
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      max-width: 520px;
+      margin: 0 auto 40px;
+    }
+
+    .tasador h2 {
+      margin: 0 0 4px;
+      font-size: 1.3rem;
+    }
+
+    .tasador .ayuda {
+      margin: 0 0 16px;
+      color: #777777;
+      font-size: 0.9rem;
+    }
+
+    /* Fila con la casilla del ISBN y los botones */
+    .fila {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* La casilla ocupa toda la fila y los botones se reparten la de abajo */
+    .fila input {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    .fila button {
+      flex: 1;
+    }
+
+    input, select, button {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cccccc;
+    }
+
+    button {
+      background-color: #2a7a4b;
+      border-color: #2a7a4b;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    button.secundario {
+      background-color: #ffffff;
+      color: #2a7a4b;
+    }
+
+    /* Zona donde aparece la imagen de la cámara */
+    #lector {
+      margin-top: 16px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #mensaje {
+      margin: 16px 0 0;
+      color: #777777;
+    }
+
+    /* Ficha con el resultado de la búsqueda */
+    .resultado {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #eeeeee;
+    }
+
+    .resultado img {
+      width: 80px;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .resultado h3 {
+      margin: 0 0 4px;
+      font-size: 1.1rem;
+    }
+
+    .resultado label {
+      display: block;
+      margin: 12px 0 4px;
+      font-size: 0.9rem;
+      color: #555555;
+    }
+
+    .resultado select {
+      width: 100%;
+      background-color: #ffffff;
+    }
+
+    .resultado .precio {
+      margin-top: 12px;
+    }
+
+    .nota {
+      margin: 4px 0 0;
+      color: #999999;
+      font-size: 0.8rem;
+    }
+
+    /* "hidden" oculta un elemento hasta que lo necesitemos */
+    [hidden] {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -87,6 +203,41 @@
     <h1>Catálogo de libros</h1>
     <p>Una pequeña selección de clásicos</p>
   </header>
+
+  <!-- Tasador: escanear o escribir un ISBN para saber cuánto vale un libro -->
+  <section class="tasador">
+    <h2>Tasa tu libro</h2>
+    <p class="ayuda">Escanea el código de barras de la contraportada o escribe el ISBN.</p>
+
+    <form id="formulario" class="fila">
+      <input id="isbn" type="text" inputmode="numeric" placeholder="13 números, empieza por 978" autocomplete="off">
+      <button type="submit">Buscar</button>
+      <button type="button" id="boton-escanear" class="secundario">📷 Escanear</button>
+    </form>
+
+    <div id="lector"></div>
+    <p id="mensaje" hidden></p>
+
+    <div id="resultado" class="resultado" hidden>
+      <img id="portada" alt="Portada del libro" hidden>
+      <div>
+        <h3 id="titulo"></h3>
+        <p class="autor" id="autor"></p>
+
+        <label for="estado">Estado de conservación</label>
+        <select id="estado">
+          <option value="1">Nuevo</option>
+          <option value="0.8">Como nuevo</option>
+          <option value="0.65" selected>Muy bueno</option>
+          <option value="0.5">Bueno</option>
+          <option value="0.3">Aceptable</option>
+        </select>
+
+        <p class="precio" id="precio"></p>
+        <p class="nota" id="nota"></p>
+      </div>
+    </div>
+  </section>
 
   <!-- Contenido principal: la lista de libros -->
   <main class="catalogo">
@@ -130,5 +281,163 @@
   <footer>
     <p>Precios de ejemplo · Mi primer proyecto</p>
   </footer>
+
+  <!-- Librería externa que sabe leer códigos de barras con la cámara -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- JavaScript: la parte que hace que la página "haga cosas" -->
+  <script>
+    // Precio que usamos si no encontramos el precio de venta del libro
+    const PRECIO_REFERENCIA = 15;
+
+    // Atajos a los elementos de la página que vamos a usar
+    const formulario = document.getElementById("formulario");
+    const campoIsbn = document.getElementById("isbn");
+    const botonEscanear = document.getElementById("boton-escanear");
+    const mensaje = document.getElementById("mensaje");
+    const resultado = document.getElementById("resultado");
+    const selectorEstado = document.getElementById("estado");
+
+    let precioBase = 0;
+    let escaner = null;
+
+    // Muestra un texto debajo del buscador (o lo oculta si está vacío)
+    function mostrarMensaje(texto) {
+      mensaje.textContent = texto;
+      mensaje.hidden = !texto;
+    }
+
+    // Quita guiones y espacios y comprueba que el ISBN tenga 10 o 13 caracteres
+    function limpiarIsbn(texto) {
+      const isbn = texto.replace(/[^0-9Xx]/g, "").toUpperCase();
+      return isbn.length === 10 || isbn.length === 13 ? isbn : null;
+    }
+
+    // Pide los datos del libro a Google Books; si no lo encuentra, prueba en Open Library
+    async function buscarLibro(isbn) {
+      try {
+        const respuesta = await fetch("https://www.googleapis.com/books/v1/volumes?country=ES&q=isbn:" + isbn);
+        const datos = await respuesta.json();
+        if (datos.items && datos.items.length > 0) {
+          const libro = datos.items[0];
+          const precio = libro.saleInfo && (libro.saleInfo.retailPrice || libro.saleInfo.listPrice);
+          return {
+            titulo: libro.volumeInfo.title,
+            autor: (libro.volumeInfo.authors || []).join(", "),
+            portada: libro.volumeInfo.imageLinks && libro.volumeInfo.imageLinks.thumbnail,
+            precio: precio && precio.currencyCode === "EUR" ? precio.amount : null
+          };
+        }
+      } catch (error) {
+        // Si Google falla, seguimos con Open Library
+      }
+
+      const respuesta = await fetch("https://openlibrary.org/api/books?format=json&jscmd=data&bibkeys=ISBN:" + isbn);
+      const datos = await respuesta.json();
+      const libro = datos["ISBN:" + isbn];
+      if (!libro) {
+        return null;
+      }
+      return {
+        titulo: libro.title,
+        autor: (libro.authors || []).map(a => a.name).join(", "),
+        portada: libro.cover && libro.cover.medium,
+        precio: null
+      };
+    }
+
+    // Calcula el precio según el estado elegido en el desplegable
+    function actualizarPrecio() {
+      const porcentaje = Number(selectorEstado.value);
+      const precio = (precioBase * porcentaje).toFixed(2).replace(".", ",");
+      document.getElementById("precio").textContent = precio + " €";
+    }
+
+    // Busca el ISBN y rellena la ficha de resultado
+    async function tasar(texto) {
+      const isbn = limpiarIsbn(texto);
+      resultado.hidden = true;
+      if (!isbn) {
+        mostrarMensaje("El ISBN debe tener 10 o 13 números.");
+        return;
+      }
+
+      campoIsbn.value = isbn;
+      mostrarMensaje("Buscando…");
+
+      let libro;
+      try {
+        libro = await buscarLibro(isbn);
+      } catch (error) {
+        mostrarMensaje("No se ha podido conectar. Revisa tu conexión a internet.");
+        return;
+      }
+      if (!libro) {
+        mostrarMensaje("No hemos encontrado ningún libro con ese ISBN.");
+        return;
+      }
+
+      mostrarMensaje("");
+      document.getElementById("titulo").textContent = libro.titulo;
+      document.getElementById("autor").textContent = libro.autor;
+
+      const portada = document.getElementById("portada");
+      portada.hidden = !libro.portada;
+      if (libro.portada) {
+        portada.src = libro.portada.replace("http://", "https://");
+      }
+
+      if (libro.precio) {
+        precioBase = libro.precio;
+        document.getElementById("nota").textContent = "Precio nuevo: " + libro.precio.toFixed(2).replace(".", ",") + " €";
+      } else {
+        precioBase = PRECIO_REFERENCIA;
+        document.getElementById("nota").textContent = "No hemos encontrado su precio de venta; usamos uno orientativo de " + PRECIO_REFERENCIA + " €.";
+      }
+
+      actualizarPrecio();
+      resultado.hidden = false;
+    }
+
+    // Enciende o apaga la cámara para leer el código de barras
+    async function alternarEscaner() {
+      if (escaner) {
+        await escaner.stop();
+        escaner = null;
+        botonEscanear.textContent = "📷 Escanear";
+        return;
+      }
+
+      escaner = new Html5Qrcode("lector", {
+        formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13],
+        verbose: false
+      });
+      botonEscanear.textContent = "✖ Cerrar cámara";
+      mostrarMensaje("Apunta al código de barras del libro.");
+
+      try {
+        await escaner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 120 } },
+          async codigo => {
+            await alternarEscaner();
+            tasar(codigo);
+          }
+        );
+      } catch (error) {
+        escaner = null;
+        botonEscanear.textContent = "📷 Escanear";
+        mostrarMensaje("No se ha podido abrir la cámara. Comprueba que has dado permiso.");
+      }
+    }
+
+    // Conectamos cada acción del usuario con su función
+    formulario.addEventListener("submit", evento => {
+      evento.preventDefault();
+      tasar(campoIsbn.value);
+    });
+    botonEscanear.addEventListener("click", alternarEscaner);
+    selectorEstado.addEventListener("change", actualizarPrecio);
+  </script>
 </body>
 </html>
