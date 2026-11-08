@@ -577,7 +577,8 @@ export function think({ fen, elo, style = 'balanced', timeMs = 1000, seed, repea
   };
 }
 
-if (typeof self !== 'undefined' && typeof self.postMessage === 'function') {
+// Solo escuchamos mensajes cuando realmente estamos dentro de un Web Worker.
+if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
   self.onmessage = (e) => {
     const msg = e.data;
     if (msg.type !== 'go') return;

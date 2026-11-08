@@ -192,10 +192,41 @@ let selected = null;    // casilla seleccionada por el jugador
 let drag = null;        // estado de arrastre
 let pendingPromotion = null;
 
+// El motor corre en un Web Worker. Si el entorno no lo permite (por ejemplo,
+// algunos alojamientos con restricciones), se usa el motor en el hilo principal.
+let engineFallback = null;
 function newWorker() {
-  if (worker) worker.terminate();
-  worker = new Worker('./engine.worker.js', { type: 'module' });
-  worker.onmessage = onEngineMessage;
+  if (worker && worker.terminate) worker.terminate();
+  worker = null;
+  if (engineFallback) { worker = engineFallback; return; }
+  try {
+    const w = new Worker('./engine.worker.js', { type: 'module' });
+    w.onmessage = onEngineMessage;
+    w.onerror = () => { if (worker === w) { useFallbackEngine(); } };
+    worker = w;
+  } catch (e) {
+    useFallbackEngine();
+  }
+}
+function useFallbackEngine() {
+  if (!engineFallback) {
+    engineFallback = {
+      ready: import('./engine.worker.js'),
+      postMessage(msg) {
+        this.ready.then((mod) => {
+          // Presupuesto corto para no congelar la interfaz.
+          const res = mod.think({ ...msg, timeMs: Math.min(msg.timeMs, 1200) });
+          onEngineMessage({ data: { type: 'move', id: msg.id, ...res } });
+        }).catch((e) => console.error('Motor no disponible', e));
+      },
+    };
+  }
+  worker = engineFallback;
+  // Si había una petición en curso cuando falló el worker, la relanzamos.
+  if (game && game.status === 'playing' && game.pending) {
+    game.pending = null;
+    scheduleBotMove();
+  }
 }
 
 function parseTc(str) {
