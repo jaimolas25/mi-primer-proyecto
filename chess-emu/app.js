@@ -860,10 +860,30 @@ $('colorPick').onclick = (e) => {
   $('colorPick').querySelectorAll('button').forEach((x) => x.classList.toggle('selected', x === b));
 };
 
+
+// Confirmación en dos pasos: el primer clic cambia el texto del botón, el
+// segundo (en menos de 4 s) ejecuta la acción. Así no dependemos de diálogos del navegador.
+function confirmClick(btn, label, action) {
+  if (btn.dataset.confirming) {
+    clearTimeout(+btn.dataset.timer);
+    btn.textContent = btn.dataset.original;
+    delete btn.dataset.confirming;
+    action();
+    return;
+  }
+  btn.dataset.original = btn.textContent;
+  btn.dataset.confirming = '1';
+  btn.textContent = label;
+  btn.dataset.timer = setTimeout(() => {
+    btn.textContent = btn.dataset.original;
+    delete btn.dataset.confirming;
+  }, 4000);
+}
+
 function backToLobby() {
   if (game && game.status === 'playing') {
-    if (!confirm('¿Abandonar la partida? Contará como derrota.')) return;
-    endGame(game.botColor, 'abandono');
+    confirmClick($('backLobbyBtn'), '¿Abandonar? Confirmar', () => { endGame(game.botColor, 'abandono'); backToLobby(); });
+    return;
   }
   $('resultModal').classList.add('hidden');
   $('gamePanel').classList.add('hidden');
@@ -896,9 +916,7 @@ $('modalClose').onclick = () => $('resultModal').classList.add('hidden');
 
 $('resignBtn').onclick = () => {
   if (!game || game.status !== 'playing') return;
-  if (game.sans.length < 2 && !confirm('¿Rendirte ya? Contará como derrota.')) return;
-  if (game.sans.length >= 2 && !confirm('¿Seguro que quieres rendirte?')) return;
-  endGame(game.botColor, 'abandono');
+  confirmClick($('resignBtn'), '¿Seguro? Confirmar', () => endGame(game.botColor, 'abandono'));
 };
 $('drawBtn').onclick = () => {
   if (!game || game.status !== 'playing') return;
@@ -1043,11 +1061,12 @@ $('startElo').onclick = (e) => {
   renderProfile();
 };
 $('resetBtn').onclick = () => {
-  if (!confirm('Esto borra tu Elo y tu historial. ¿Continuar?')) return;
-  const name = profile.name, sound = profile.sound;
-  profile = { ...defaultProfile(), name, sound };
-  saveProfile();
-  renderProfile();
+  confirmClick($('resetBtn'), 'Se borra todo. ¿Confirmar?', () => {
+    const name = profile.name, sound = profile.sound;
+    profile = { ...defaultProfile(), name, sound };
+    saveProfile();
+    renderProfile();
+  });
 };
 $('soundBtn').onclick = () => {
   profile.sound = !profile.sound;
