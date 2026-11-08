@@ -1,0 +1,5 @@
+# Lo que se genera automáticamente no se sube al repositorio:
+videos/
+biblioteca.js
+*.log
+__pycache__/
