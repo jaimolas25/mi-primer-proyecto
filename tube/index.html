@@ -3,9 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MiTube · buscador de YouTube</title>
+  <title>MiTube · Buscador y reproductor de vídeos de YouTube sin cuenta</title>
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="Busca y reproduce cualquier vídeo de YouTube desde una página ligera, sin cuenta ni anuncios de la interfaz.">
+  <meta name="description" content="MiTube: busca y reproduce cualquier vídeo de YouTube desde una página web ligera, sin cuenta ni instalación. Tendencias, canales, listas, vídeos recién subidos y resultados que se actualizan solos.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://jaimolas25.github.io/mi-primer-proyecto/tube/">
+  <!-- Verificación de Google Search Console: pega aquí la etiqueta <meta name="google-site-verification" ...> que te dé Google -->
+  <!-- Vista previa al compartir en redes y mensajería -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MiTube">
+  <meta property="og:title" content="MiTube · Buscador y reproductor de vídeos de YouTube">
+  <meta property="og:description" content="Busca y reproduce cualquier vídeo de YouTube desde una página web ligera, sin cuenta ni instalación.">
+  <meta property="og:url" content="https://jaimolas25.github.io/mi-primer-proyecto/tube/">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MiTube · Buscador y reproductor de vídeos de YouTube">
+  <meta name="twitter:description" content="Busca y reproduce cualquier vídeo de YouTube desde una página web ligera, sin cuenta ni instalación.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 21'%3E%3Crect width='30' height='21' rx='6' fill='%23ff0033'/%3E%3Cpath d='M12 5l9 5.5-9 5.5z' fill='%23fff'/%3E%3C/svg%3E">
+  <!-- Datos estructurados: ayudan a Google a entender qué es esta página -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "MiTube",
+    "url": "https://jaimolas25.github.io/mi-primer-proyecto/tube/",
+    "description": "Buscador y reproductor de vídeos de YouTube en una página web ligera, sin cuenta ni instalación.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any",
+    "inLanguage": "es",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://jaimolas25.github.io/mi-primer-proyecto/tube/#/buscar?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
   <style>
     :root {
       --fondo: #0f0f0f; --fondo-2: #1f1f1f; --fondo-3: #272727; --borde: #3f3f3f;
@@ -174,7 +208,12 @@
   <p class="nota" id="nota-fuente"></p>
 </nav>
 
-<main id="contenido"></main>
+<main id="contenido">
+  <noscript>
+    <h1>MiTube: buscador y reproductor de vídeos de YouTube</h1>
+    <p>Busca cualquier vídeo de YouTube, consulta las tendencias de tu país, explora canales y listas y reproduce los vídeos sin cuenta ni instalación. Esta página necesita JavaScript activado.</p>
+  </noscript>
+</main>
 
 <dialog id="ajustes">
   <h2>Ajustes</h2>
@@ -797,7 +836,7 @@ function enrutar() {
   const partes = ruta.split("/");
   document.getElementById("lateral").classList.remove("abierta");
   document.querySelectorAll("nav .item").forEach(a => a.classList.toggle("activo", a.getAttribute("href") === "#/" + ruta));
-  document.title = "MiTube · buscador de YouTube";
+  document.title = "MiTube · Buscador y reproductor de vídeos de YouTube sin cuenta";
   cancelarRefresco();
   if (reproductor && partes[0] !== "ver") { try { reproductor.destroy(); } catch {} reproductor = null; }
   if (partes[0] !== "buscar") document.getElementById("busqueda").value = "";

@@ -1,0 +1,5 @@
+# Permite a todos los buscadores rastrear el sitio
+User-agent: *
+Allow: /
+
+Sitemap: https://jaimolas25.github.io/mi-primer-proyecto/sitemap.xml
