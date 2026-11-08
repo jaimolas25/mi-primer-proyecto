@@ -32,6 +32,24 @@ chess/
 vercel.json           Configuración de despliegue (sirve la carpeta chess/)
 ```
 
+### Dónde está publicada
+
+- **GitHub Pages** (rama `main`): <https://jaimolas25.github.io/mi-primer-proyecto/chess/>
+- **Vercel**: la URL `*.vercel.app` que asigne el proyecto al importar el repositorio (ver abajo). Si se usa Vercel como dirección principal, cambia la etiqueta `<link rel="canonical">` de `chess/index.html` y las URLs de `sitemap.xml` y `robots.txt` por la de Vercel.
+
+Para que Google la indexe: la página ya lleva título, descripción, datos estructurados, `robots.txt` y `sitemap.xml`. Lo que acelera la aparición en Google es dar de alta la URL en [Google Search Console](https://search.google.com/search-console) y enviar el sitemap desde allí; sin eso Google tarda días o semanas en descubrirla.
+
+### Nivel de los rivales
+
+| Elo del bot | Comportamiento |
+|---|---|
+| < 1200 | Errores frecuentes, se cuelgan piezas, finales mal rematados a veces |
+| 1200–1500 | Errores ocasionales de hasta una pieza menor |
+| 1500–1800 | Imprecisiones; como mucho pierde un par de peones de golpe |
+| 1800–2100 | Juega sólido, errores de ≤ 1 peón |
+| 2100–2400 | Pequeñas imprecisiones (≤ 0,7 peones) |
+| ≥ 2400 | Prácticamente siempre la mejor jugada que ve el motor |
+
 ### Despliegue en Vercel
 
 1. En [vercel.com](https://vercel.com) → **Add New… → Project** e importa este repositorio de GitHub.

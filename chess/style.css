@@ -224,3 +224,8 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: v
 .result-insights { margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 8px; }
 .modal-actions .btn { flex: 1; }
+
+/* ---------- Pie con texto descriptivo ---------- */
+.seo-footer { max-width: 1240px; margin: 8px auto 24px; padding: 0 16px; color: var(--muted); font-size: 13px; }
+.seo-footer h1 { font-size: 15px; color: var(--text); margin: 0 0 6px; }
+.seo-footer p { margin: 0 0 6px; line-height: 1.5; }

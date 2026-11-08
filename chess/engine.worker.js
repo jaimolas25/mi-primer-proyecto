@@ -441,11 +441,17 @@ function searchRoot(depth, prev) {
 // ---- Modelo humano ----------------------------------------------------------
 function eloParams(elo) {
   const t = Math.max(0, Math.min(1, (elo - 300) / 2300)); // 0 → 300 Elo, 1 → 2600 Elo
+  // Probabilidad de error grave: alta en principiantes, casi nula a partir de ~1800.
+  let blunderRate = 0.30 * Math.pow(1 - t, 2.2) + 0.004;
+  if (elo >= 1500) blunderRate = Math.max(0.002, 0.03 - 0.026 * Math.min(1, (elo - 1500) / 500));
   return {
-    maxDepth: elo < 700 ? 1 : elo < 1000 ? 2 : elo < 1400 ? 3 : elo < 1900 ? 4 : elo < 2300 ? 5 : 7,
+    maxDepth: elo < 700 ? 1 : elo < 1000 ? 2 : elo < 1400 ? 3 : elo < 1900 ? 4 : elo < 2300 ? 6 : 8,
     temperature: 260 * Math.pow(1 - t, 1.6) + 8,     // cuánto se aleja de la mejor jugada
-    blunderRate: 0.30 * Math.pow(1 - t, 2.2) + 0.004, // probabilidad de error grave
+    blunderRate,
     window: 60 + 500 * Math.pow(1 - t, 1.8),          // pérdida máxima "normal" en centipeones
+    // Tope absoluto de pérdida por jugada: los jugadores buenos pueden ser
+    // imprecisos, pero no regalan piezas enteras.
+    maxLoss: elo < 1200 ? 2000 : elo < 1500 ? 450 : elo < 1800 ? 220 : elo < 2100 ? 110 : elo < 2400 ? 70 : 40,
   };
 }
 
@@ -501,7 +507,7 @@ function pickHuman(results, elo, style, rng, repeatedKeys) {
   // flojos también saben rematar un final ganado.
   const decisive = Math.min(1, Math.max(0, (Math.abs(best) - 300) / 700));
   const blunder = rng() < p.blunderRate * (1 - 0.7 * decisive);
-  let window = blunder ? p.window * 3 + 300 : p.window;
+  let window = blunder ? Math.min(p.window * 3 + 300, p.maxLoss * 1.6) : Math.min(p.window, p.maxLoss);
   let temperature = blunder ? p.temperature * 2.5 : p.temperature;
   window *= 1 - 0.6 * decisive;
   temperature *= 1 - 0.75 * decisive;
