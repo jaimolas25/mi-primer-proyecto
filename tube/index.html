@@ -47,6 +47,7 @@
       --radio: 12px; --cabecera: 56px; --lateral: 220px;
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body { margin: 0; font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; background: var(--fondo); color: var(--texto); }
     a { color: inherit; text-decoration: none; }
     button { font: inherit; color: inherit; cursor: pointer; }
@@ -139,6 +140,31 @@
     .mini h4 { margin: 0 0 4px; font-size: 0.875rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .mini p { margin: 0; color: var(--texto-2); font-size: 0.75rem; }
 
+    /* ---------- Shorts ---------- */
+    .rejilla-shorts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 24px 12px; }
+    .tarjeta-short { cursor: pointer; }
+    .tarjeta-short .miniatura { aspect-ratio: 9 / 16; border-radius: 12px; }
+    .tarjeta-short h2 { margin: 8px 0 4px; font-size: 0.9rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tarjeta-short p { margin: 0; color: var(--texto-2); font-size: 0.8rem; }
+    .short-vista { display: flex; gap: 16px; align-items: center; justify-content: center; }
+    .short-marco { position: relative; width: min(100%, calc((100vh - 150px) * 9 / 16), 460px); aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden; background: #000; }
+    .short-marco #player, .short-marco iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .short-controles { display: flex; flex-direction: column; gap: 12px; }
+    .boton-redondo { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--fondo-3); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+    .boton-redondo:hover { background: var(--borde); }
+    .boton-redondo:disabled { opacity: 0.4; cursor: default; }
+    .short-info { max-width: 560px; margin: 16px auto 0; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+    .short-info h1 { font-size: 1.05rem; margin: 0; line-height: 1.4; }
+    .short-info .fila-canal { margin: 0; justify-content: center; }
+    .short-info .fila-canal .acciones { margin-left: 0; }
+    .short-contador { color: var(--texto-2); font-size: 0.8rem; }
+    @media (max-width: 760px) {
+      .short-vista { flex-direction: column; gap: 10px; }
+      .short-controles { flex-direction: row; }
+      .short-marco { width: min(100%, calc((100vh - 230px) * 9 / 16)); }
+      .rejilla-shorts { grid-template-columns: repeat(2, 1fr); }
+    }
+
     /* ---------- Canal ---------- */
     .banner { width: 100%; aspect-ratio: 6.2 / 1; object-fit: cover; border-radius: var(--radio); margin-bottom: 16px; background: var(--fondo-2); }
     .cabecera-canal { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; }
@@ -199,6 +225,7 @@
 <nav id="lateral">
   <a class="item" href="#/"><span class="ico">🏠</span>Inicio</a>
   <a class="item" href="#/tendencias"><span class="ico">🔥</span>Tendencias</a>
+  <a class="item" href="#/shorts"><span class="ico">▯</span>Shorts</a>
   <a class="item" href="#/historial"><span class="ico">📜</span>Historial</a>
   <hr>
   <h3>Búsquedas recientes</h3>
@@ -400,6 +427,40 @@ async function buscar(consulta, filtros, pagina) {
   return buscarPiped(consulta, filtros, pagina);
 }
 
+// ---- Shorts: se obtienen de la pestaña "Shorts" de cada canal (la búsqueda no los devuelve) ----
+const SHORTS_CACHE_MS = 30 * 60 * 1000;
+let feedShorts = leerLocal("mitube-feed-shorts", []); // lista que recorre el reproductor vertical
+
+function normalizarShort(x, canal) {
+  const id = (x.url || "").match(/v=([\w-]+)/)?.[1];
+  return {
+    tipo: "short", id, titulo: x.title, canal: x.uploaderName || canal.nombre, canalId: canal.id, short: true,
+    vistas: x.views, subido: x.uploaded > 0 ? x.uploaded : null, subidoTexto: x.uploadedDate,
+    miniatura: id ? `https://i.ytimg.com/vi/${id}/oar2.jpg` : x.thumbnail, miniaturaAlt: x.thumbnail || (id ? miniaturaDe(id, "hqdefault") : ""),
+  };
+}
+// Devuelve { canal, items, siguiente, data } con la primera página de Shorts de un canal (con caché de 30 min)
+async function shortsDeCanal(id) {
+  const clave = "mitube-shorts-" + id;
+  const cache = leerLocal(clave, null);
+  if (cache && Date.now() - cache.t < SHORTS_CACHE_MS) return cache.valor;
+  const c = await piped(`/channel/${encodeURIComponent(id)}`);
+  const canal = { id, nombre: c.name, avatar: c.avatarUrl };
+  const tab = (c.tabs || []).find(t => t.name === "shorts");
+  let valor = { canal, items: [], siguiente: null, data: null };
+  if (tab) {
+    const r = await piped(`/channels/tabs?data=${encodeURIComponent(tab.data)}`);
+    valor = { canal, items: (r.content || []).map(x => normalizarShort(x, canal)).filter(v => v.id), siguiente: r.nextpage || null, data: tab.data };
+  }
+  guardarLocal(clave, { t: Date.now(), valor });
+  return valor;
+}
+async function masShortsDeCanal(data, nextpage, canal) {
+  const r = await piped(`/channels/tabs?data=${encodeURIComponent(data)}&nextpage=${encodeURIComponent(nextpage)}`);
+  return { items: (r.content || []).map(x => normalizarShort(x, canal)).filter(v => v.id), siguiente: r.nextpage || null };
+}
+function fijarFeedShorts(lista) { feedShorts = lista.map(v => ({ id: v.id, titulo: v.titulo, canal: v.canal, canalId: v.canalId, vistas: v.vistas })); guardarLocal("mitube-feed-shorts", feedShorts); }
+
 // ============================================================
 //  Historial y búsquedas recientes
 // ============================================================
@@ -461,7 +522,17 @@ function tarjetaLista(l) {
       <div class="datos"><div><h2>${escapar(l.titulo)}</h2><p>${escapar(l.canal || "")} · Lista de reproducción</p></div></div>
     </article>`;
 }
-function tarjeta(x) { return x.tipo === "canal" ? tarjetaCanal(x) : x.tipo === "lista" ? tarjetaLista(x) : tarjetaVideo(x); }
+function tarjetaShort(v) {
+  const alt = v.miniaturaAlt ? ` onerror="this.onerror=null;this.src='${escapar(v.miniaturaAlt)}'"` : "";
+  return `
+    <article class="tarjeta-short" data-short="${escapar(v.id)}">
+      <div class="miniatura"><img src="${escapar(v.miniatura)}" alt="" loading="lazy"${alt}></div>
+      <h2>${escapar(v.titulo)}</h2>
+      <p>${escapar(v.canal || "")}</p>
+      <p>${escapar(v.vistas >= 0 ? formatoNumero(v.vistas) + " visualizaciones" : "")}</p>
+    </article>`;
+}
+function tarjeta(x) { return x.tipo === "canal" ? tarjetaCanal(x) : x.tipo === "lista" ? tarjetaLista(x) : x.tipo === "short" ? tarjetaShort(x) : tarjetaVideo(x); }
 function miniVideo(v) {
   return `
     <div class="mini" data-ir="#/ver/${encodeURIComponent(v.id)}">
@@ -746,6 +817,101 @@ async function vistaVer(id) {
   }
 }
 
+// --- Shorts: feed -----------------------------------------------------
+async function vistaShorts() {
+  contenido.innerHTML = `<h1 class="titulo">Shorts</h1><div class="cargando">Buscando Shorts en tus canales y en los de las tendencias…</div>`;
+  try {
+    // Canales de origen: los de tu historial (lo que ves) y los de las tendencias de tu región
+    const delHistorial = [...new Set(leerLocal(CLAVES.historial, []).map(v => v.canalId).filter(Boolean))].slice(0, 5);
+    let deTendencias = [];
+    try { deTendencias = [...new Set((await piped(`/trending?region=${encodeURIComponent(ajustes.region)}`)).map(x => (x.uploaderUrl || "").replace("/channel/", "")).filter(Boolean))]; } catch {}
+    const canales = [...new Set([...delHistorial, ...deTendencias])].slice(0, 10);
+    const resultados = await Promise.allSettled(canales.map(shortsDeCanal));
+    const porCanal = resultados.filter(r => r.status === "fulfilled" && r.value.items.length).map(r => r.value);
+    if (!porCanal.length) {
+      contenido.innerHTML = `<h1 class="titulo">Shorts</h1><div class="vacio"><h2>No se han encontrado Shorts</h2><p>Mira algún vídeo o entra en un canal: en su página tienes una pestaña "Shorts". Aquí se irán juntando los Shorts de los canales que veas y de las tendencias.</p></div>`;
+      return;
+    }
+    // Se intercalan los canales para que el feed sea variado
+    const lista = [];
+    for (let i = 0; lista.length < 80; i++) {
+      let quedan = false;
+      for (const c of porCanal) { if (c.items[i]) { lista.push(c.items[i]); quedan = true; } }
+      if (!quedan) break;
+    }
+    const chips = porCanal.map(c => `<button class="chip" data-canal="${escapar(c.canal.id)}">${escapar(c.canal.nombre)}</button>`).join("");
+    contenido.innerHTML = `
+      <h1 class="titulo">Shorts</h1>
+      <div class="filtros"><button class="chip activo" data-canal="">Todos</button>${chips}</div>
+      <div class="rejilla-shorts" id="rejilla-shorts"></div>`;
+    const rejilla = document.getElementById("rejilla-shorts");
+    const pintarLista = filtro => {
+      const visibles = filtro ? lista.filter(v => v.canalId === filtro) : lista;
+      rejilla.innerHTML = visibles.map(tarjetaShort).join("");
+      rejilla.querySelectorAll("[data-short]").forEach(el => el.addEventListener("click", () => { fijarFeedShorts(visibles); location.hash = "#/short/" + encodeURIComponent(el.dataset.short); }));
+    };
+    pintarLista("");
+    contenido.querySelectorAll(".filtros .chip").forEach(ch => ch.addEventListener("click", () => {
+      contenido.querySelectorAll(".filtros .chip").forEach(x => x.classList.toggle("activo", x === ch));
+      pintarLista(ch.dataset.canal);
+    }));
+  } catch (e) { mostrarError(contenido, e, vistaShorts); }
+}
+
+// --- Shorts: reproductor vertical -------------------------------------
+async function vistaShort(id) {
+  let indice = feedShorts.findIndex(v => v.id === id);
+  if (indice < 0) { feedShorts = [{ id }]; indice = 0; } // enlace directo a un Short que no está en el feed
+  const actual = feedShorts[indice], anterior = feedShorts[indice - 1], siguiente = feedShorts[indice + 1];
+  siguienteVideo = siguiente?.id || null;
+  contenido.innerHTML = `
+    <div class="short-vista">
+      <div class="short-marco"><div id="player"></div></div>
+      <div class="short-controles">
+        <button class="boton-redondo" id="short-anterior" title="Anterior (↑)" ${anterior ? "" : "disabled"}>▲</button>
+        <button class="boton-redondo" id="short-siguiente" title="Siguiente (↓)" ${siguiente ? "" : "disabled"}>▼</button>
+      </div>
+    </div>
+    <div class="short-info" id="short-info">
+      <h1>${escapar(actual.titulo || "")}</h1>
+      <div class="fila-canal">
+        ${actual.canalId ? `<a class="nombre-canal" href="#/canal/${encodeURIComponent(actual.canalId)}">${escapar(actual.canal || "")}</a>` : ""}
+        <span class="sub">${actual.vistas >= 0 ? formatoNumero(actual.vistas) + " visualizaciones" : ""}</span>
+        <div class="acciones">
+          <a class="pildora" href="https://www.youtube.com/shorts/${encodeURIComponent(id)}" target="_blank" rel="noopener">YouTube ↗</a>
+        </div>
+      </div>
+      <span class="short-contador">${feedShorts.length > 1 ? `${indice + 1} de ${feedShorts.length} · ↑ ↓ para cambiar · Esc para volver` : "Esc para volver"}</span>
+    </div>`;
+  const ir = v => { if (v) location.hash = "#/short/" + encodeURIComponent(v.id); };
+  document.getElementById("short-anterior").addEventListener("click", () => ir(anterior));
+  document.getElementById("short-siguiente").addEventListener("click", () => ir(siguiente));
+
+  const conApi = await cargarApiYoutube();
+  if (!decodeURIComponent(location.hash).startsWith("#/short/" + id)) return;
+  if (conApi) {
+    if (reproductor) { try { reproductor.destroy(); } catch {} }
+    reproductor = new YT.Player("player", {
+      videoId: id, host: "https://www.youtube-nocookie.com",
+      playerVars: { autoplay: 1, rel: 0, hl: "es", playsinline: 1, loop: siguiente ? 0 : 1, playlist: siguiente ? undefined : id },
+      events: { onStateChange: e => { if (e.data === YT.PlayerState.ENDED && ajustes.autoplay) ir(siguiente); } },
+    });
+  } else {
+    document.getElementById("player").outerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0&hl=es&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  }
+  // Si llegamos por enlace directo, completamos el título con los datos del vídeo
+  if (!actual.titulo) {
+    try {
+      const d = await obtenerDetalles(id);
+      if (!decodeURIComponent(location.hash).startsWith("#/short/" + id)) return;
+      Object.assign(actual, { titulo: d.titulo, canal: d.canal, canalId: d.canalId, vistas: d.vistas });
+      document.querySelector("#short-info h1").textContent = d.titulo;
+      anotarHistorial({ id, titulo: d.titulo, canal: d.canal, canalId: d.canalId, duracion: 0 });
+    } catch {}
+  } else anotarHistorial({ id, titulo: actual.titulo, canal: actual.canal, canalId: actual.canalId, duracion: 0 });
+  document.title = (actual.titulo || "Short") + " · MiTube";
+}
+
 // --- Canal --------------------------------------------------------
 async function vistaCanal(id) {
   contenido.innerHTML = `<div class="cargando">Cargando canal…</div>`;
@@ -763,9 +929,41 @@ async function vistaCanal(id) {
           <p class="desc">${escapar(c.description || "")}</p>
         </div>
       </div>
+      <div class="filtros" id="pestanas-canal"><button class="chip activo" data-pestana="videos">Vídeos</button>${(c.tabs || []).some(t => t.name === "shorts") ? `<button class="chip" data-pestana="shorts">Shorts</button>` : ""}</div>
       <div class="rejilla" id="videos-canal"></div>
+      <div class="rejilla-shorts" id="shorts-canal" hidden></div>
       <div id="pie-canal"></div>`;
     const rejilla = document.getElementById("videos-canal");
+    const pie = document.getElementById("pie-canal");
+    // Pestaña Shorts del canal
+    const rejillaShorts = document.getElementById("shorts-canal");
+    let shorts = null; // { items, siguiente, data }
+    const pintarShorts = () => {
+      rejillaShorts.innerHTML = shorts.items.map(tarjetaShort).join("") || `<p class="nota" style="grid-column:1/-1">Este canal no tiene Shorts.</p>`;
+      rejillaShorts.querySelectorAll("[data-short]").forEach(el => el.addEventListener("click", () => { fijarFeedShorts(shorts.items); location.hash = "#/short/" + encodeURIComponent(el.dataset.short); }));
+      pie.innerHTML = shorts.siguiente ? `<button class="mas">Cargar más</button>` : "";
+      pie.querySelector("button")?.addEventListener("click", async () => {
+        pie.innerHTML = `<div class="cargando">Cargando…</div>`;
+        try { const r = await masShortsDeCanal(shorts.data, shorts.siguiente, { id, nombre: c.name }); shorts.items.push(...r.items); shorts.siguiente = r.siguiente; }
+        catch { shorts.siguiente = null; }
+        pintarShorts();
+      });
+    };
+    document.querySelectorAll("#pestanas-canal .chip").forEach(ch => ch.addEventListener("click", async () => {
+      document.querySelectorAll("#pestanas-canal .chip").forEach(x => x.classList.toggle("activo", x === ch));
+      const verShorts = ch.dataset.pestana === "shorts";
+      rejilla.hidden = verShorts; rejillaShorts.hidden = !verShorts;
+      contenido.querySelectorAll(".aviso").forEach(a => { a.hidden = verShorts; });
+      if (!verShorts) { ponerBoton(); return; }
+      if (!shorts) {
+        pie.innerHTML = ""; rejillaShorts.innerHTML = `<div class="cargando" style="grid-column:1/-1">Cargando Shorts…</div>`;
+        try { const r = await shortsDeCanal(id); shorts = { items: r.items.slice(), siguiente: r.siguiente, data: r.data }; }
+        catch (e) { rejillaShorts.innerHTML = `<p class="nota" style="grid-column:1/-1">No se pudieron cargar los Shorts (${escapar(e.message)}).</p>`; return; }
+      }
+      pintarShorts();
+    }));
+
+    // Vídeos del canal
     const añadir = lista => { rejilla.insertAdjacentHTML("beforeend", lista.map(normalizarPiped).filter(v => v.id && (ajustes.shorts || !v.short)).map(tarjetaVideo).join("")); activarClics(rejilla); };
     añadir(c.relatedStreams || []);
     if (!rejilla.children.length) {
@@ -788,8 +986,7 @@ async function vistaCanal(id) {
         rejilla.insertAdjacentHTML("beforebegin", `<div class="aviso">No se pudieron cargar los vídeos del canal ahora mismo. Prueba más tarde o cambia el servidor en ⚙️ Ajustes.</div>`);
       }
     }
-    const pie = document.getElementById("pie-canal");
-    const ponerBoton = () => {
+    function ponerBoton() {
       pie.innerHTML = siguiente ? `<button class="mas">Cargar más</button>` : "";
       pie.querySelector("button")?.addEventListener("click", async () => {
         pie.innerHTML = `<div class="cargando">Cargando…</div>`;
@@ -797,8 +994,9 @@ async function vistaCanal(id) {
         catch { siguiente = null; }
         ponerBoton();
       });
-    };
+    }
     ponerBoton();
+
   } catch (e) { mostrarError(contenido, e, () => vistaCanal(id)); }
 }
 
@@ -838,7 +1036,7 @@ function enrutar() {
   document.querySelectorAll("nav .item").forEach(a => a.classList.toggle("activo", a.getAttribute("href") === "#/" + ruta));
   document.title = "MiTube · Buscador y reproductor de vídeos de YouTube sin cuenta";
   cancelarRefresco();
-  if (reproductor && partes[0] !== "ver") { try { reproductor.destroy(); } catch {} reproductor = null; }
+  if (reproductor && partes[0] !== "ver" && partes[0] !== "short") { try { reproductor.destroy(); } catch {} reproductor = null; }
   if (partes[0] !== "buscar") document.getElementById("busqueda").value = "";
   window.scrollTo(0, 0);
 
@@ -846,6 +1044,8 @@ function enrutar() {
     case "": case "tendencias": vistaInicio(); break;
     case "buscar": vistaBuscar(parametros); break;
     case "ver": vistaVer(decodeURIComponent(partes[1] || "")); break;
+    case "shorts": vistaShorts(); break;
+    case "short": vistaShort(decodeURIComponent(partes[1] || "")); break;
     case "canal": vistaCanal(decodeURIComponent(partes[1] || "")); break;
     case "lista": vistaLista(decodeURIComponent(partes[1] || "")); break;
     case "historial": vistaHistorial(); break;
@@ -904,7 +1104,13 @@ document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") { if (e.key === "Escape") e.target.blur(); return; }
   if (e.key === "/") { e.preventDefault(); campo.focus(); }
   if (e.key === "Escape" && location.hash.startsWith("#/ver/")) history.back();
+  if (e.key === "Escape" && location.hash.startsWith("#/short/")) location.hash = "#/shorts";
   if (e.key.toLowerCase() === "n" && location.hash.startsWith("#/ver/") && siguienteVideo) location.hash = "#/ver/" + encodeURIComponent(siguienteVideo);
+  if (location.hash.startsWith("#/short/") && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key.toLowerCase() === "n")) {
+    e.preventDefault();
+    const boton = document.getElementById(e.key === "ArrowUp" ? "short-anterior" : "short-siguiente");
+    if (boton && !boton.disabled) boton.click();
+  }
 });
 document.getElementById("boton-menu").addEventListener("click", () => document.getElementById("lateral").classList.toggle("abierta"));
 
