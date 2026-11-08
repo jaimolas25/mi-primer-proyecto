@@ -57,6 +57,9 @@
 
     .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 32px 16px; }
     .tarjeta { cursor: pointer; }
+    .nuevo { animation: aparecer 0.6s ease-out; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+    .hora-refresco { margin: -8px 0 16px; }
     .miniatura { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radio); overflow: hidden; background: var(--fondo-2); }
     .miniatura img { width: 100%; height: 100%; object-fit: cover; }
     .miniatura .duracion { position: absolute; right: 8px; bottom: 8px; padding: 2px 5px; border-radius: 4px; background: rgba(0,0,0,0.8); font-size: 0.75rem; font-weight: 600; }
@@ -440,6 +443,35 @@ function mostrarError(contenedor, error, reintentar) {
 }
 const contenido = document.getElementById("contenido");
 
+// ---- Refresco automático ligero: una petición cada pocos minutos, solo con la pestaña visible ----
+const REFRESCO_MS = 3 * 60 * 1000;
+let temporizadorRefresco = null, funcionRefresco = null;
+function programarRefresco(fn) {
+  cancelarRefresco();
+  funcionRefresco = fn;
+  temporizadorRefresco = setInterval(() => { if (document.visibilityState === "visible" && funcionRefresco) funcionRefresco(); }, REFRESCO_MS);
+}
+function cancelarRefresco() { clearInterval(temporizadorRefresco); temporizadorRefresco = null; funcionRefresco = null; }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && funcionRefresco) funcionRefresco(); });
+function pintarHoraRefresco(contenedor) {
+  const hora = new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  let el = contenedor.querySelector(".hora-refresco");
+  if (!el) { el = document.createElement("p"); el.className = "nota hora-refresco"; contenedor.querySelector("h1.titulo")?.after(el); }
+  el.textContent = `Actualizado a las ${hora} · se renueva solo cada ${REFRESCO_MS / 60000} min`;
+}
+// Añade al principio de una rejilla los vídeos que aún no estaban, sin tocar el resto
+function insertarNuevos(rejilla, nuevos, idsConocidos) {
+  const frescos = nuevos.filter(v => v.id && !idsConocidos.has(v.tipo + ":" + v.id));
+  if (!frescos.length) return 0;
+  frescos.forEach(v => idsConocidos.add(v.tipo + ":" + v.id));
+  const plantilla = document.createElement("div");
+  plantilla.innerHTML = frescos.map(tarjeta).join("");
+  const elementos = [...plantilla.children];
+  elementos.forEach(el => { el.classList.add("nuevo"); rejilla.prepend(el); });
+  activarClics(rejilla);
+  return elementos.length;
+}
+
 // ============================================================
 //  Vistas
 // ============================================================
@@ -448,8 +480,17 @@ async function vistaInicio() {
   try {
     const r = await piped(`/trending?region=${encodeURIComponent(ajustes.region)}`);
     const videos = r.map(normalizarPiped).filter(v => ajustes.shorts || !v.short);
-    contenido.querySelector(".cargando").outerHTML = `<div class="rejilla">${videos.map(tarjetaVideo).join("")}</div>`;
+    contenido.querySelector(".cargando").outerHTML = `<div class="rejilla" id="tendencias">${videos.map(tarjetaVideo).join("")}</div>`;
     activarClics(contenido);
+    pintarHoraRefresco(contenido);
+    const conocidos = new Set(videos.map(v => "video:" + v.id));
+    programarRefresco(async () => {
+      try {
+        const nuevos = (await piped(`/trending?region=${encodeURIComponent(ajustes.region)}`)).map(normalizarPiped).filter(v => ajustes.shorts || !v.short);
+        const rejilla = document.getElementById("tendencias");
+        if (rejilla) { insertarNuevos(rejilla, nuevos, conocidos); pintarHoraRefresco(contenido); }
+      } catch { /* se reintenta en el siguiente ciclo */ }
+    });
   } catch (e) { mostrarError(contenido, e, vistaInicio); }
 }
 
@@ -524,6 +565,19 @@ async function vistaBuscar(parametros) {
   if (!ajustes.clave && filtros.tipo === "videos" && (filtros.orden === "recientes" || FECHAS_MS[filtros.fecha])) {
     for (let i = 0; i < 2 && siguiente; i++) { document.getElementById("boton-mas")?.remove(); await cargarPagina(); }
   }
+  if (acumulados.length) pintarHoraRefresco(contenido);
+  // Refresco en segundo plano: se repite la primera página y se añaden arriba los vídeos que no estaban
+  programarRefresco(async () => {
+    try {
+      const r = await buscar(q, filtros, null);
+      if (!document.getElementById("resultados")) return;
+      const limite = FECHAS_MS[filtros.fecha] ? Date.now() - FECHAS_MS[filtros.fecha] : 0;
+      const nuevos = r.items.filter(x => x.tipo !== "video" || ((ajustes.shorts || !x.short) && (!limite || x.directo || (x.subido && x.subido >= limite))));
+      const añadidos = insertarNuevos(document.getElementById("resultados"), nuevos, vistos);
+      if (añadidos) acumulados.unshift(...nuevos.filter(x => document.querySelector(`#resultados [data-ir="#/ver/${encodeURIComponent(x.id)}"]`)).slice(0, añadidos));
+      pintarHoraRefresco(contenido);
+    } catch { /* se reintenta en el siguiente ciclo */ }
+  });
 }
 
 // --- Reproductor -------------------------------------------------
@@ -744,6 +798,7 @@ function enrutar() {
   document.getElementById("lateral").classList.remove("abierta");
   document.querySelectorAll("nav .item").forEach(a => a.classList.toggle("activo", a.getAttribute("href") === "#/" + ruta));
   document.title = "MiTube · buscador de YouTube";
+  cancelarRefresco();
   if (reproductor && partes[0] !== "ver") { try { reproductor.destroy(); } catch {} reproductor = null; }
   if (partes[0] !== "buscar") document.getElementById("busqueda").value = "";
   window.scrollTo(0, 0);
