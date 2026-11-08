@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChessEmu · Juega al ajedrez</title>
+  <meta name="description" content="Juega partidas de ajedrez online contra rivales de tu nivel. Tu Elo sube y baja con cada partida.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2381b64c'/><text x='50' y='72' font-size='64' text-anchor='middle'>♞</text></svg>">
+  <link rel="stylesheet" href="vendor/pieces.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">
+      <span class="brand-icon">♞</span>
+      <span class="brand-name">ChessEmu</span>
+    </a>
+    <nav class="topnav">
+      <button class="navbtn active" data-tab="play">Jugar</button>
+      <button class="navbtn" data-tab="profile">Perfil</button>
+      <button class="navbtn" data-tab="ranking">Rivales</button>
+    </nav>
+    <div class="topright">
+      <button id="soundBtn" class="iconbtn" title="Sonido">🔊</button>
+      <div class="me-chip">
+        <span class="me-avatar" id="meAvatarTop">T</span>
+        <span id="meNameTop">Tú</span>
+        <span class="me-rating" id="meRatingTop">800</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ================= Tablero ================= -->
+    <section class="board-column">
+      <div class="player-card top" id="cardTop">
+        <div class="avatar" id="avatarTop">?</div>
+        <div class="pinfo">
+          <div class="pname"><span class="title" id="titleTop"></span><span id="nameTop">Buscando rival…</span> <span class="flag" id="flagTop"></span> <span class="prating" id="ratingTop"></span></div>
+          <div class="captured" id="capturedTop"></div>
+        </div>
+        <div class="clock" id="clockTop">10:00</div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board">
+          <div class="squares" id="squares"></div>
+          <div class="highlights" id="highlights"></div>
+          <div class="pieces" id="pieces"></div>
+          <div class="dots" id="dots"></div>
+          <div class="coords files" id="coordFiles"></div>
+          <div class="coords ranks" id="coordRanks"></div>
+          <div class="promo hidden" id="promo"></div>
+        </div>
+      </div>
+
+      <div class="player-card bottom" id="cardBottom">
+        <div class="avatar me" id="avatarBottom">T</div>
+        <div class="pinfo">
+          <div class="pname"><span id="nameBottom">Tú</span> <span class="prating" id="ratingBottom">800</span></div>
+          <div class="captured" id="capturedBottom"></div>
+        </div>
+        <div class="clock" id="clockBottom">10:00</div>
+      </div>
+    </section>
+
+    <!-- ================= Panel lateral ================= -->
+    <aside class="side">
+      <!-- Pestaña Jugar -->
+      <div class="panel" id="tab-play">
+        <!-- Lobby: nueva partida -->
+        <div class="lobby" id="lobby">
+          <h2>Nueva partida</h2>
+          <div class="field">
+            <label>Control de tiempo</label>
+            <div class="tc-grid" id="tcGrid">
+              <button data-tc="60+0">1 min<small>Bala</small></button>
+              <button data-tc="180+0">3 min<small>Blitz</small></button>
+              <button data-tc="180+2">3 | 2<small>Blitz</small></button>
+              <button data-tc="300+0">5 min<small>Blitz</small></button>
+              <button data-tc="600+0" class="selected">10 min<small>Rápidas</small></button>
+              <button data-tc="900+10">15 | 10<small>Rápidas</small></button>
+              <button data-tc="1800+0">30 min<small>Clásicas</small></button>
+              <button data-tc="0+0">Sin reloj<small>Relajado</small></button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Juego con</label>
+            <div class="color-pick" id="colorPick">
+              <button data-color="w" title="Blancas"><span class="piece wk mini"></span></button>
+              <button data-color="random" class="selected" title="Aleatorio">?</button>
+              <button data-color="b" title="Negras"><span class="piece bk mini"></span></button>
+            </div>
+          </div>
+          <div class="ladder-info">
+            <div><strong>Tu Elo:</strong> <span id="lobbyRating">800</span> · <span id="lobbyLevel">Principiante</span></div>
+            <div class="muted">El emparejamiento busca rivales de tu nivel. Si ganas, el siguiente será más fuerte; si pierdes, algo más flojo.</div>
+          </div>
+          <button class="btn primary big" id="playBtn">Jugar</button>
+          <div class="searching hidden" id="searching">
+            <div class="spinner"></div>
+            <div>Buscando rival… <span id="searchElo"></span></div>
+          </div>
+        </div>
+
+        <!-- Partida en curso -->
+        <div class="game-panel hidden" id="gamePanel">
+          <div class="opp-summary" id="oppSummary"></div>
+          <div class="moves" id="moves"></div>
+          <div class="nav-row">
+            <button class="iconbtn" id="navStart" title="Inicio">⏮</button>
+            <button class="iconbtn" id="navPrev" title="Anterior">◀</button>
+            <button class="iconbtn" id="navNext" title="Siguiente">▶</button>
+            <button class="iconbtn" id="navEnd" title="Final">⏭</button>
+            <button class="iconbtn" id="flipBtn" title="Girar tablero">⇅</button>
+          </div>
+          <div class="chat" id="chat">
+            <div class="chat-log" id="chatLog"></div>
+            <div class="chat-quick">
+              <button data-say="hello">Hola</button>
+              <button data-say="gg">Buena partida</button>
+              <button data-say="thanks">Gracias</button>
+              <button data-say="oops">Uy</button>
+            </div>
+          </div>
+          <div class="actions" id="gameActions">
+            <button class="btn" id="drawBtn">½ Tablas</button>
+            <button class="btn danger" id="resignBtn">⚑ Rendirse</button>
+          </div>
+          <div class="actions hidden" id="postActions">
+            <button class="btn primary" id="rematchBtn">Revancha</button>
+            <button class="btn" id="nextBtn">Nuevo rival</button>
+            <button class="btn ghost" id="backLobbyBtn">Menú</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pestaña Perfil -->
+      <div class="panel hidden" id="tab-profile">
+        <div class="profile-head">
+          <div class="avatar me big" id="avatarProfile">T</div>
+          <div>
+            <input id="nameInput" class="name-input" maxlength="18" placeholder="Tu nombre">
+            <div class="muted">Miembro desde <span id="memberSince"></span></div>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="stat-v" id="statRating">800</div><div class="stat-l">Elo</div></div>
+          <div class="stat"><div class="stat-v" id="statPeak">800</div><div class="stat-l">Máximo</div></div>
+          <div class="stat"><div class="stat-v" id="statGames">0</div><div class="stat-l">Partidas</div></div>
+          <div class="stat"><div class="stat-v" id="statRecord">0-0-0</div><div class="stat-l">G-T-P</div></div>
+        </div>
+        <h3>Evolución del Elo</h3>
+        <svg id="ratingChart" class="chart" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+        <h3>Historial</h3>
+        <div class="history" id="history"><div class="muted">Aún no has jugado ninguna partida.</div></div>
+        <div class="field">
+          <label>Elo inicial (solo si no has jugado)</label>
+          <div class="start-elo" id="startElo">
+            <button data-elo="400">400</button>
+            <button data-elo="800" class="selected">800</button>
+            <button data-elo="1200">1200</button>
+            <button data-elo="1600">1600</button>
+          </div>
+        </div>
+        <button class="btn ghost small" id="resetBtn">Reiniciar progreso</button>
+      </div>
+
+      <!-- Pestaña Rivales -->
+      <div class="panel hidden" id="tab-ranking">
+        <h2>Jugadores en línea</h2>
+        <div class="muted">Rivales disponibles ordenados por Elo. Se te emparejará con los de tu nivel.</div>
+        <div class="bot-list" id="botList"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal fin de partida -->
+  <div class="modal hidden" id="resultModal">
+    <div class="modal-card">
+      <div class="result-title" id="resultTitle">Victoria</div>
+      <div class="result-sub" id="resultSub">por jaque mate</div>
+      <div class="result-ratings">
+        <div class="rr"><div class="avatar me" id="resAvatarMe">T</div><div class="rr-name" id="resNameMe">Tú</div><div class="rr-rating"><span id="resRatingMe">800</span> <span class="delta" id="resDeltaMe">+8</span></div></div>
+        <div class="vs">vs</div>
+        <div class="rr"><div class="avatar" id="resAvatarOpp">?</div><div class="rr-name" id="resNameOpp">Rival</div><div class="rr-rating"><span id="resRatingOpp">800</span> <span class="delta" id="resDeltaOpp">-8</span></div></div>
+      </div>
+      <div class="result-insights muted" id="resultInsights"></div>
+      <div class="modal-actions">
+        <button class="btn primary" id="modalRematch">Revancha</button>
+        <button class="btn" id="modalNext">Nuevo rival</button>
+        <button class="btn ghost" id="modalClose">Ver partida</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
