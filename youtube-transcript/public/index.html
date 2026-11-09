@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transcriptor de YouTube</title>
+  <meta name="description" content="Pega el enlace de un vídeo de YouTube y obtén su transcripción al instante. Copia, busca y descarga en TXT, SRT o VTT.">
+  <style>
+    :root {
+      --fondo: #f5f5f0;
+      --tarjeta: #ffffff;
+      --texto: #333333;
+      --suave: #777777;
+      --borde: #dddddd;
+      --acento: #2a7a4b;
+      --acento-claro: #e6f2ea;
+      --error: #b23a3a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--fondo);
+      color: var(--texto);
+      margin: 0;
+      padding: 40px 16px;
+      line-height: 1.5;
+    }
+
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 { margin: 0 0 8px; font-size: 2.2rem; }
+    header p { margin: 0; color: var(--suave); }
+
+    main { max-width: 900px; margin: 0 auto; }
+
+    .tarjeta {
+      background-color: var(--tarjeta);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 24px;
+    }
+
+    /* Fila con la casilla de la URL y el botón */
+    .buscador { display: flex; flex-wrap: wrap; gap: 8px; }
+    .buscador input { flex: 1 1 300px; min-width: 0; }
+    .buscador button { flex: 0 0 auto; }
+
+    input, select, button {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cccccc;
+      background: #fff;
+      color: var(--texto);
+    }
+
+    button {
+      background-color: var(--acento);
+      border-color: var(--acento);
+      color: #ffffff;
+      cursor: pointer;
+    }
+    button.secundario { background-color: #ffffff; color: var(--acento); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+
+    .opciones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: center;
+      margin-top: 12px;
+      color: var(--suave);
+      font-size: 0.95rem;
+    }
+    .opciones label { display: inline-flex; align-items: center; gap: 6px; }
+
+    #mensaje { margin: 16px 0 0; color: var(--suave); }
+    #mensaje.error { color: var(--error); }
+
+    /* Resultado: vídeo a la izquierda y transcripción a la derecha */
+    .resultado { display: none; }
+    .resultado.visible { display: block; }
+
+    .cabecera-video { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+    .reproductor {
+      flex: 1 1 320px;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+    }
+    .reproductor iframe { width: 100%; height: 100%; border: 0; }
+    .datos { flex: 1 1 260px; }
+    .datos h2 { margin: 0 0 4px; font-size: 1.3rem; }
+    .datos p { margin: 0 0 8px; color: var(--suave); }
+    .etiqueta {
+      display: inline-block;
+      background: var(--acento-claro);
+      color: var(--acento);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 0.8rem;
+      margin: 2px 4px 2px 0;
+    }
+
+    .herramientas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 20px 0 12px;
+    }
+    .herramientas input[type="search"] { flex: 1 1 200px; min-width: 0; }
+    .herramientas .grupo { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* La transcripción en sí */
+    #transcripcion {
+      max-height: 60vh;
+      overflow-y: auto;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    .linea {
+      display: flex;
+      gap: 12px;
+      padding: 6px 4px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .linea:hover { background: var(--acento-claro); }
+    .linea.activa { background: var(--acento-claro); }
+    .linea.oculta { display: none; }
+    .linea time {
+      flex: 0 0 auto;
+      color: var(--acento);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.9rem;
+      padding-top: 2px;
+      min-width: 3.5em;
+    }
+    .linea.sin-tiempo time { display: none; }
+    mark { background: #ffe58a; border-radius: 3px; padding: 0 1px; }
+
+    #parrafo { white-space: pre-wrap; display: none; }
+    .modo-parrafo #parrafo { display: block; }
+    .modo-parrafo #lineas { display: none; }
+
+    details { margin-top: 24px; color: var(--suave); font-size: 0.9rem; }
+    details code {
+      display: block;
+      background: #f0f0ea;
+      padding: 10px 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+      color: var(--texto);
+    }
+
+    footer { text-align: center; margin-top: 48px; color: #999999; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Transcriptor de YouTube</h1>
+    <p>Pega el enlace de un vídeo y obtén su transcripción. Copia, busca y descarga en TXT, SRT o VTT.</p>
+  </header>
+
+  <main>
+    <!-- Formulario -->
+    <section class="tarjeta">
+      <form id="formulario" class="buscador">
+        <input id="url" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=..." required autofocus>
+        <button id="boton" type="submit">Transcribir</button>
+      </form>
+      <div class="opciones">
+        <label>Idioma preferido
+          <select id="idioma">
+            <option value="">Automático</option>
+            <option value="es">Español</option>
+            <option value="en">Inglés</option>
+            <option value="fr">Francés</option>
+            <option value="de">Alemán</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Portugués</option>
+            <option value="ca">Catalán</option>
+          </select>
+        </label>
+        <label><input id="tiempos" type="checkbox" checked> Mostrar tiempos</label>
+        <label><input id="parrafos" type="checkbox"> Ver como texto corrido</label>
+      </div>
+      <p id="mensaje"></p>
+    </section>
+
+    <!-- Resultado -->
+    <section id="resultado" class="tarjeta resultado">
+      <div class="cabecera-video">
+        <div class="reproductor"><iframe id="video" title="Vídeo" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
+        <div class="datos">
+          <h2 id="titulo"></h2>
+          <p id="autor"></p>
+          <div id="etiquetas"></div>
+          <p id="otros-idiomas"></p>
+        </div>
+      </div>
+
+      <div class="herramientas">
+        <input id="buscar" type="search" placeholder="Buscar en la transcripción...">
+        <div class="grupo">
+          <button id="copiar" class="secundario" type="button">Copiar</button>
+          <button id="txt" class="secundario" type="button">TXT</button>
+          <button id="srt" class="secundario" type="button">SRT</button>
+          <button id="vtt" class="secundario" type="button">VTT</button>
+        </div>
+      </div>
+
+      <div id="transcripcion">
+        <div id="lineas"></div>
+        <p id="parrafo"></p>
+      </div>
+    </section>
+
+    <details>
+      <summary>Usar como API desde otra web o programa</summary>
+      <p>Este servidor también funciona como proxy: cualquier programa puede pedirle la transcripción.</p>
+      <code id="ejemplo-api"></code>
+      <p>Parámetros: <strong>url</strong> (enlace o ID), <strong>lang</strong> (p. ej. <em>es,en</em>), <strong>format</strong> (json, text, srt, vtt), <strong>timestamps=1</strong>, <strong>download=1</strong>. También <em>/api/languages?url=...</em> lista los idiomas disponibles.</p>
+    </details>
+  </main>
+
+  <footer>Los subtítulos los proporciona YouTube; este servicio solo los reordena para que puedas leerlos.</footer>
+
+  <script>
+    // Referencias a los elementos de la página
+    const $ = (id) => document.getElementById(id);
+    const formulario = $("formulario");
+    const entradaUrl = $("url");
+    const boton = $("boton");
+    const mensaje = $("mensaje");
+    const resultado = $("resultado");
+    const lineas = $("lineas");
+    const parrafo = $("parrafo");
+    const transcripcion = $("transcripcion");
+
+    let datos = null; // la última transcripción recibida
+
+    $("ejemplo-api").textContent = `${location.origin}/api/transcript?url=https://youtu.be/VIDEO_ID&lang=es&format=text`;
+
+    // Si llega ?url=... en la dirección, lo rellenamos y buscamos directamente.
+    const inicial = new URLSearchParams(location.search).get("url");
+    if (inicial) {
+      entradaUrl.value = inicial;
+      obtenerTranscripcion();
+    }
+
+    formulario.addEventListener("submit", (e) => {
+      e.preventDefault();
+      obtenerTranscripcion();
+    });
+
+    function avisar(texto, esError = false) {
+      mensaje.textContent = texto;
+      mensaje.className = esError ? "error" : "";
+    }
+
+    function formatearTiempo(segundos) {
+      const t = Math.max(0, Math.floor(segundos));
+      const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+      const dos = (n) => String(n).padStart(2, "0");
+      return h ? `${h}:${dos(m)}:${dos(s)}` : `${m}:${dos(s)}`;
+    }
+
+    async function obtenerTranscripcion() {
+      const url = entradaUrl.value.trim();
+      if (!url) return;
+
+      boton.disabled = true;
+      avisar("Obteniendo la transcripción...");
+      resultado.classList.remove("visible");
+
+      const params = new URLSearchParams({ url });
+      const idioma = $("idioma").value;
+      if (idioma) params.set("lang", idioma);
+
+      try {
+        const respuesta = await fetch("/api/transcript?" + params);
+        const json = await respuesta.json();
+        if (!respuesta.ok) throw new Error(json.error || "No se pudo obtener la transcripción.");
+        datos = json;
+        pintarResultado();
+        history.replaceState(null, "", "?url=" + encodeURIComponent(url));
+        avisar(`${json.segments.length} fragmentos.`);
+      } catch (err) {
+        avisar(err.message, true);
+      } finally {
+        boton.disabled = false;
+      }
+    }
+
+    function pintarResultado() {
+      const info = datos.info || {};
+      $("video").src = `https://www.youtube-nocookie.com/embed/${datos.videoId}?enablejsapi=1`;
+      $("titulo").textContent = info.title || datos.videoId;
+      $("autor").textContent = info.author || "";
+
+      const etiquetas = [datos.languageName || datos.language];
+      if (datos.isGenerated) etiquetas.push("generados automáticamente");
+      if (datos.isTranslated) etiquetas.push("traducción automática");
+      $("etiquetas").innerHTML = etiquetas.map((t) => `<span class="etiqueta">${escapar(t)}</span>`).join("");
+
+      const otros = (datos.availableLanguages || []).filter((l) => l.languageCode !== datos.language);
+      $("otros-idiomas").textContent = otros.length
+        ? "Otros idiomas disponibles: " + otros.map((l) => l.name || l.languageCode).join(", ")
+        : "";
+
+      lineas.innerHTML = datos.segments
+        .map((s, i) => `<div class="linea" data-i="${i}" data-start="${s.start}"><time>${formatearTiempo(s.start)}</time><span>${escapar(s.text)}</span></div>`)
+        .join("");
+      parrafo.textContent = datos.segments.map((s) => s.text).join(" ");
+
+      aplicarOpciones();
+      $("buscar").value = "";
+      resultado.classList.add("visible");
+    }
+
+    function escapar(texto) {
+      return String(texto).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    // Mostrar/ocultar tiempos y modo párrafo
+    function aplicarOpciones() {
+      lineas.querySelectorAll(".linea").forEach((el) => el.classList.toggle("sin-tiempo", !$("tiempos").checked));
+      transcripcion.classList.toggle("modo-parrafo", $("parrafos").checked);
+    }
+    $("tiempos").addEventListener("change", aplicarOpciones);
+    $("parrafos").addEventListener("change", aplicarOpciones);
+
+    // Al pulsar una línea, el vídeo salta a ese momento
+    lineas.addEventListener("click", (e) => {
+      const linea = e.target.closest(".linea");
+      if (!linea) return;
+      const inicio = Math.floor(Number(linea.dataset.start));
+      lineas.querySelectorAll(".activa").forEach((el) => el.classList.remove("activa"));
+      linea.classList.add("activa");
+      $("video").contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: "seekTo", args: [inicio, true] }), "*"
+      );
+      $("video").contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+    });
+
+    // Búsqueda dentro de la transcripción (resalta y oculta lo que no coincide)
+    $("buscar").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      lineas.querySelectorAll(".linea").forEach((el) => {
+        const s = datos.segments[Number(el.dataset.i)];
+        const span = el.querySelector("span");
+        if (!q) {
+          el.classList.remove("oculta");
+          span.innerHTML = escapar(s.text);
+          return;
+        }
+        const coincide = s.text.toLowerCase().includes(q);
+        el.classList.toggle("oculta", !coincide);
+        if (coincide) {
+          // Buscamos sobre el texto ya escapado para no romper el HTML.
+          const patron = escapar(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          span.innerHTML = escapar(s.text).replace(new RegExp(patron, "gi"), (m) => `<mark>${m}</mark>`);
+        }
+      });
+    });
+
+    // Copiar y descargar
+    $("copiar").addEventListener("click", async () => {
+      const conTiempos = $("tiempos").checked && !$("parrafos").checked;
+      const texto = conTiempos
+        ? datos.segments.map((s) => `[${formatearTiempo(s.start)}] ${s.text}`).join("\n")
+        : datos.segments.map((s) => s.text).join(" ");
+      try {
+        await navigator.clipboard.writeText(texto);
+        avisar("Transcripción copiada al portapapeles.");
+      } catch {
+        avisar("No se pudo copiar automáticamente; selecciona el texto y cópialo a mano.", true);
+      }
+    });
+
+    function descargar(formato) {
+      const params = new URLSearchParams({ url: datos.videoId, format: formato, download: "1" });
+      if (datos.isTranslated || $("idioma").value) params.set("lang", datos.language);
+      if (formato === "text" && $("tiempos").checked) params.set("timestamps", "1");
+      location.href = "/api/transcript?" + params;
+    }
+    $("txt").addEventListener("click", () => descargar("text"));
+    $("srt").addEventListener("click", () => descargar("srt"));
+    $("vtt").addEventListener("click", () => descargar("vtt"));
+  </script>
+</body>
+</html>

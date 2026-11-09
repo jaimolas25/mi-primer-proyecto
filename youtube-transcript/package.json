@@ -1,0 +1,17 @@
+{
+  "name": "youtube-transcript-proxy",
+  "version": "1.0.0",
+  "description": "Proxy que obtiene la transcripción (subtítulos) de vídeos de YouTube, al estilo transcript.lol",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}
