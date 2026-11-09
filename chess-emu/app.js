@@ -1,6 +1,7 @@
 import { Chess } from './vendor/chess.js';
 import { BOTS, phrase, STYLE_LABEL, levelName, avatarColor, pickOpponent } from './bots.js';
 import { bookMoves, bookDepthFor } from './book.js';
+import { pieceSvg } from './pieces.js';
 
 const $ = (id) => document.getElementById(id);
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -87,8 +88,6 @@ const dotsEl = $('dots');
 let orientation = 'w';
 const pieceEls = new Map(); // casilla -> elemento
 
-// Las piezas son SVG incrustados en la página (sprite <symbol>), sin imágenes externas ni data: URIs.
-const pieceSvg = (code) => `<svg viewBox="0 0 45 45"><use href="#p-${code}"/></svg>`;
 
 function sqToXY(sq) {
   const file = sq.charCodeAt(0) - 97;
@@ -1094,6 +1093,7 @@ $('soundBtn').onclick = () => {
 // =============================================================================
 // Arranque
 // =============================================================================
+document.querySelectorAll('[data-piece]').forEach((el) => { el.innerHTML = pieceSvg(el.dataset.piece); });
 buildSquares();
 renderPosition(new Chess(), false);
 renderCards();
