@@ -1,14 +1,15 @@
 /* Service worker de Arena Brawl: guarda el juego en caché para que se pueda abrir sin conexión.
    Cuando cambies el juego, sube el número de VERSION para que los dispositivos descarguen la nueva. */
-const VERSION = 'arena-brawl-v2';
+const VERSION = 'arena-brawl-v3';
 const ARCHIVOS = [
   './arena.html',
   './manifest.json',
-  './iconos/icono-192.png',
-  './iconos/icono-512.png',
-  './iconos/icono-maskable-192.png',
-  './iconos/icono-maskable-512.png',
-  './iconos/apple-touch-icon.png',
+  './css/arena.css',
+  './js/datos.js', './js/util.js', './js/sonido.js', './js/progreso.js', './js/mapa.js',
+  './js/entidades.js', './js/ia.js', './js/modos.js', './js/partida.js', './js/dibujo.js',
+  './js/entrada.js', './js/lobby.js', './js/app.js',
+  './iconos/icono-192.png', './iconos/icono-512.png',
+  './iconos/icono-maskable-192.png', './iconos/icono-maskable-512.png', './iconos/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', evento => {
