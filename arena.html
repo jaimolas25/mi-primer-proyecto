@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b1f3a">
+  <title>Arena Brawl</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #1b1f3a;
+      color: #ffffff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #juego {
+      position: fixed;
+      inset: 0;
+      display: block;
+    }
+
+    /* Pantallas de menú y de final de partida (encima del lienzo) */
+    .pantalla {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      justify-content: safe center;
+      padding: 16px;
+      box-sizing: border-box;
+      text-align: center;
+      background: radial-gradient(circle at 50% 30%, #3b2f7a 0%, #1b1f3a 60%, #0d0f22 100%);
+      overflow-y: auto;
+    }
+
+    .oculta { display: none; }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(2.2rem, 9vw, 4.5rem);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #ffd43b;
+      text-shadow: 0 4px 0 #b8860b, 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .subtitulo {
+      margin: 0 0 20px;
+      color: #cfd3ff;
+      font-size: 1rem;
+    }
+
+    .tarjetas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      max-width: 720px;
+      margin-bottom: 20px;
+    }
+
+    .tarjeta {
+      background: rgba(255, 255, 255, 0.08);
+      border: 3px solid transparent;
+      border-radius: 16px;
+      padding: 12px 10px;
+      width: 150px;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .tarjeta:hover { background: rgba(255, 255, 255, 0.14); }
+
+    .tarjeta.elegida {
+      border-color: #ffd43b;
+      background: rgba(255, 212, 59, 0.16);
+      transform: translateY(-4px);
+    }
+
+    .tarjeta canvas {
+      width: 84px;
+      height: 84px;
+      display: block;
+      margin: 0 auto 6px;
+    }
+
+    .tarjeta b {
+      display: block;
+      font-size: 1.15rem;
+      margin-bottom: 4px;
+    }
+
+    .tarjeta small {
+      display: block;
+      color: #cfd3ff;
+      font-size: 0.74rem;
+      line-height: 1.35;
+    }
+
+    .barras {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 3px 6px;
+      font-size: 0.68rem;
+      color: #aab0e0;
+      text-align: left;
+      align-items: center;
+    }
+
+    .barra {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .barra span {
+      display: block;
+      height: 100%;
+      background: #ffd43b;
+      border-radius: 3px;
+    }
+
+    .boton {
+      font: inherit;
+      font-size: 1.3rem;
+      font-weight: bold;
+      padding: 14px 40px;
+      border-radius: 14px;
+      border: 0;
+      cursor: pointer;
+      color: #3a2a00;
+      background: linear-gradient(#ffe066, #ffc107);
+      box-shadow: 0 5px 0 #b8860b, 0 10px 20px rgba(0, 0, 0, 0.4);
+      transition: transform 0.1s, box-shadow 0.1s;
+      margin: 6px;
+    }
+
+    .boton:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #b8860b;
+    }
+
+    .boton.secundario {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
+      font-size: 1rem;
+      padding: 12px 24px;
+    }
+
+    .ayuda {
+      max-width: 560px;
+      color: #aab0e0;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin: 10px 0 0;
+    }
+
+    .ayuda kbd {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: inherit;
+      color: #ffffff;
+    }
+
+    #resultado {
+      font-size: clamp(2.4rem, 10vw, 5rem);
+      margin: 0 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    #resultado.victoria { color: #ffd43b; text-shadow: 0 4px 0 #b8860b, 0 8px 24px rgba(0,0,0,.6); }
+    #resultado.derrota { color: #ff6b6b; text-shadow: 0 4px 0 #8b1a1a, 0 8px 24px rgba(0,0,0,.6); }
+    #resultado.empate { color: #cfd3ff; text-shadow: 0 4px 0 #555, 0 8px 24px rgba(0,0,0,.6); }
+
+    .estadisticas {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 12px 0 20px;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .estadistica {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .estadistica b {
+      display: block;
+      font-size: 1.6rem;
+      color: #ffd43b;
+    }
+
+    .estadistica span {
+      font-size: 0.78rem;
+      color: #aab0e0;
+    }
+
+    .fila-opciones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: #cfd3ff;
+    }
+
+    .fila-opciones label { margin: 0 6px; }
+
+    .fila-opciones select {
+      font: inherit;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 0;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+
+    .fila-opciones option { color: #000000; }
+
+    .enlace-volver {
+      position: fixed;
+      top: 10px;
+      left: 12px;
+      color: #aab0e0;
+      font-size: 0.8rem;
+      text-decoration: none;
+      z-index: 11;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="juego"></canvas>
+
+  <!-- Pantalla inicial: elegir luchador -->
+  <section id="menu" class="pantalla">
+    <a class="enlace-volver" href="index.html">← Volver al catálogo</a>
+    <h1>Arena Brawl</h1>
+    <p class="subtitulo">Combate 3 contra 3 · Modo <b>Caza de cristales</b>: reúne 10 cristales y aguanta 15 segundos</p>
+
+    <div id="tarjetas" class="tarjetas"></div>
+
+    <div class="fila-opciones">
+      <label>Tu nombre <input id="nombre" maxlength="12" value="Tú" style="font:inherit;padding:6px 10px;border-radius:8px;border:0;width:110px;background:rgba(255,255,255,.15);color:#fff"></label>
+      <label>Dificultad
+        <select id="dificultad">
+          <option value="facil">Fácil</option>
+          <option value="normal" selected>Normal</option>
+          <option value="dificil">Difícil</option>
+        </select>
+      </label>
+      <label><input id="sonido" type="checkbox" checked> Sonido</label>
+    </div>
+
+    <button id="jugar" class="boton">¡A LUCHAR!</button>
+
+    <p class="ayuda">
+      <b>Ordenador:</b> mover con <kbd>WASD</kbd> o flechas · apuntar con el ratón · disparar con <kbd>clic</kbd> o <kbd>espacio</kbd> · súper con <kbd>clic derecho</kbd> o <kbd>E</kbd>.<br>
+      <b>Móvil:</b> joystick izquierdo para moverte · arrastra en la derecha para apuntar y suelta para disparar · toque rápido = disparo automático · botón amarillo = súper.
+    </p>
+  </section>
+
+  <!-- Pantalla final -->
+  <section id="final" class="pantalla oculta">
+    <h2 id="resultado">Victoria</h2>
+    <p id="motivo" class="subtitulo"></p>
+    <div class="estadisticas">
+      <div class="estadistica"><b id="e-bajas">0</b><span>Bajas</span></div>
+      <div class="estadistica"><b id="e-muertes">0</b><span>Veces eliminado</span></div>
+      <div class="estadistica"><b id="e-dano">0</b><span>Daño causado</span></div>
+      <div class="estadistica"><b id="e-cristales">0</b><span>Cristales recogidos</span></div>
+    </div>
+    <div>
+      <button id="otra" class="boton">Jugar otra vez</button>
+      <button id="cambiar" class="boton secundario">Cambiar luchador</button>
+    </div>
+  </section>
+
+  <script>
+    'use strict';
+
+    /* =========================================================
+       CONSTANTES Y DATOS DEL JUEGO
+       ========================================================= */
+    const TILE = 48;                 // tamaño de una casilla en píxeles
+    const CRISTALES_PARA_GANAR = 10; // cristales que debe tener un equipo
+    const CUENTA_ATRAS = 15;         // segundos que hay que aguantar con 10 cristales
+    const DURACION_MAXIMA = 240;     // si nadie gana antes, se decide por cristales
+    const TIEMPO_REAPARICION = 3;    // segundos muerto antes de volver
+    const ESPERA_CURACION = 3;       // segundos sin recibir daño para empezar a curarse
+
+    // Mapa: '#' muro, '.' suelo, 'b' arbusto, 'M' mina de cristales, '1' / '2' puntos de aparición.
+    // Se define la mitad de arriba y se refleja para que sea simétrico.
+    const MITAD_MAPA = [
+      "####################",
+      "#..................#",
+      "#.1....bb....bb..1.#",
+      "#...1..bb....bb....#",
+      "#..................#",
+      "#.##......##.....#.#",
+      "#.##.bbb..##..bb.#.#",
+      "#....bbb......bb...#",
+      "#.........##.......#",
+      "#.bb..##..##..###..#",
+      "#.bb..##......###..#",
+      "#......b..........b#",
+      "#..###.b..####....b#",
+      "#..###....####..bb.#",
+      "#.........MM....bb.#",
+    ];
+
+    // Luchadores originales del juego. Velocidad en píxeles por segundo, alcance en píxeles.
+    const LUCHADORES = {
+      roca: {
+        nombre: 'Roca', color: '#e8792b', colorOscuro: '#9a4a12',
+        vida: 4800, velocidad: 150, alcance: 4.8 * TILE, recarga: 1.3,
+        ataque: { tipo: 'escopeta', cantidad: 5, apertura: 0.38, dano: 300, velocidad: 640, radio: 6 },
+        superImpactos: 14, super: { tipo: 'embestida', dano: 900 },
+        rol: 'Tanque', descripcion: 'Escopeta de corto alcance con muchísima vida. Súper: embestida que arrolla y empuja.',
+        forma: 'cuadrado'
+      },
+      vega: {
+        nombre: 'Vega', color: '#4fa3ff', colorOscuro: '#1d5fb0',
+        vida: 2800, velocidad: 160, alcance: 9 * TILE, recarga: 1.6,
+        ataque: { tipo: 'simple', dano: 1050, velocidad: 920, radio: 5 },
+        superImpactos: 3, super: { tipo: 'perforante', dano: 1700, velocidad: 1000, radio: 9 },
+        rol: 'Francotiradora', descripcion: 'Disparo único de larguísimo alcance. Súper: bala gigante que atraviesa enemigos y muros.',
+        forma: 'rombo'
+      },
+      pixel: {
+        nombre: 'Píxel', color: '#8ef05a', colorOscuro: '#3f8f1c',
+        vida: 3400, velocidad: 172, alcance: 6.5 * TILE, recarga: 1.1,
+        ataque: { tipo: 'rafaga', cantidad: 3, intervalo: 0.08, dano: 360, velocidad: 760, radio: 5 },
+        superImpactos: 10, super: { tipo: 'nova', cantidad: 14, dano: 520, velocidad: 700, radio: 6 },
+        rol: 'Luchador', descripcion: 'Ráfagas rápidas de tres balas. Súper: explosión de 14 balas en todas direcciones.',
+        forma: 'circulo'
+      },
+      lua: {
+        nombre: 'Lúa', color: '#c77dff', colorOscuro: '#7a2ec2',
+        vida: 2400, velocidad: 160, alcance: 7.5 * TILE, recarga: 1.7,
+        ataque: { tipo: 'lanzamiento', dano: 900, velocidad: 540, radio: 7, area: 64 },
+        superImpactos: 4, super: { tipo: 'lluvia', cantidad: 3, dano: 1100, velocidad: 520, radio: 10, area: 110 },
+        rol: 'Lanzadora', descripcion: 'Bombas que pasan por encima de los muros. Súper: lluvia de tres bombas enormes.',
+        forma: 'triangulo'
+      },
+    };
+
+    const NOMBRES_BOT = ['Nébula', 'Trueno', 'Chispa', 'Ferro', 'Cometa', 'Brisa', 'Volt', 'Ónix', 'Dardo', 'Mango'];
+
+    const DIFICULTADES = {
+      facil:   { punteria: 0.22, reaccion: 0.45, vista: 7 },
+      normal:  { punteria: 0.12, reaccion: 0.25, vista: 9 },
+      dificil: { punteria: 0.05, reaccion: 0.12, vista: 11 },
+    };
+
+    /* =========================================================
+       UTILIDADES
+       ========================================================= */
+    const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
+    const azar = (a, b) => a + Math.random() * (b - a);
+    const distancia = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
+    const anguloHacia = (ax, ay, bx, by) => Math.atan2(by - ay, bx - ax);
+    const mezclar = lista => lista.map(v => [Math.random(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+
+    /* =========================================================
+       SONIDO (sintetizado, sin archivos externos)
+       ========================================================= */
+    const sonido = {
+      ctx: null,
+      activo: true,
+      iniciar() {
+        if (this.ctx) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) this.ctx = new AC();
+      },
+      tono(frecuencia, duracion, tipo = 'square', volumen = 0.05, frecuenciaFinal = null) {
+        if (!this.activo || !this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gan = this.ctx.createGain();
+        osc.type = tipo;
+        osc.frequency.setValueAtTime(frecuencia, t);
+        if (frecuenciaFinal) osc.frequency.exponentialRampToValueAtTime(frecuenciaFinal, t + duracion);
+        gan.gain.setValueAtTime(volumen, t);
+        gan.gain.exponentialRampToValueAtTime(0.0001, t + duracion);
+        osc.connect(gan).connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + duracion);
+      },
+      disparo() { this.tono(420, 0.09, 'square', 0.035, 140); },
+      impacto() { this.tono(180, 0.08, 'sawtooth', 0.04, 90); },
+      recoger() { this.tono(880, 0.12, 'sine', 0.05, 1320); },
+      super() { this.tono(200, 0.35, 'sawtooth', 0.06, 900); },
+      muerte() { this.tono(140, 0.4, 'triangle', 0.07, 40); },
+      victoria() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tono(f, 0.3, 'square', 0.05), i * 130)); },
+      derrota() { [392, 330, 262, 196].forEach((f, i) => setTimeout(() => this.tono(f, 0.35, 'triangle', 0.06), i * 160)); },
+    };
+
+    /* =========================================================
+       MAPA
+       ========================================================= */
+    function construirMapa() {
+      const filas = MITAD_MAPA.slice();
+      for (let i = MITAD_MAPA.length - 1; i >= 0; i--) {
+        filas.push(MITAD_MAPA[i].replace(/1/g, '2'));
+      }
+      const mapa = {
+        filas: filas.length,
+        columnas: filas[0].length,
+        casillas: filas.map(f => f.split('')),
+        apariciones: [[], []],
+        mina: { x: 0, y: 0 },
+      };
+      mapa.ancho = mapa.columnas * TILE;
+      mapa.alto = mapa.filas * TILE;
+      let minas = [];
+      for (let f = 0; f < mapa.filas; f++) {
+        for (let c = 0; c < mapa.columnas; c++) {
+          const ch = mapa.casillas[f][c];
+          const cx = c * TILE + TILE / 2;
+          const cy = f * TILE + TILE / 2;
+          if (ch === '1') { mapa.apariciones[0].push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
+          if (ch === '2') { mapa.apariciones[1].push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
+          if (ch === 'M') { minas.push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
+        }
+      }
+      mapa.mina.x = minas.reduce((s, m) => s + m.x, 0) / minas.length;
+      mapa.mina.y = minas.reduce((s, m) => s + m.y, 0) / minas.length;
+      return mapa;
+    }
+
+    function casillaEn(mapa, x, y) {
+      const c = Math.floor(x / TILE);
+      const f = Math.floor(y / TILE);
+      if (c < 0 || f < 0 || c >= mapa.columnas || f >= mapa.filas) return '#';
+      return mapa.casillas[f][c];
+    }
+
+    const esMuro = (mapa, x, y) => casillaEn(mapa, x, y) === '#';
+    const esArbusto = (mapa, x, y) => casillaEn(mapa, x, y) === 'b';
+
+    // ¿Un círculo choca con algún muro?
+    function circuloChocaMuro(mapa, x, y, r) {
+      const c0 = Math.floor((x - r) / TILE), c1 = Math.floor((x + r) / TILE);
+      const f0 = Math.floor((y - r) / TILE), f1 = Math.floor((y + r) / TILE);
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          if (c < 0 || f < 0 || c >= mapa.columnas || f >= mapa.filas || mapa.casillas[f][c] === '#') {
+            const px = limitar(x, c * TILE, c * TILE + TILE);
+            const py = limitar(y, f * TILE, f * TILE + TILE);
+            if (distancia(x, y, px, py) < r) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Mueve un círculo intentando cada eje por separado (resbala por los muros)
+    function moverConColision(mapa, ente, dx, dy) {
+      const antesX = ente.x, antesY = ente.y;
+      ente.x += dx;
+      if (circuloChocaMuro(mapa, ente.x, ente.y, ente.r)) ente.x = antesX;
+      ente.y += dy;
+      if (circuloChocaMuro(mapa, ente.x, ente.y, ente.r)) ente.y = antesY;
+      return ente.x !== antesX || ente.y !== antesY;
+    }
+
+    // ¿Hay línea de visión sin muros entre dos puntos?
+    function hayVision(mapa, ax, ay, bx, by) {
+      const d = distancia(ax, ay, bx, by);
+      const pasos = Math.ceil(d / 10);
+      for (let i = 1; i < pasos; i++) {
+        const t = i / pasos;
+        if (esMuro(mapa, ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+      }
+      return true;
+    }
+
+    /* =========================================================
+       ESTADO DE LA PARTIDA
+       ========================================================= */
+    let partida = null;
+    let ajustes = { tipoJugador: 'pixel', nombre: 'Tú', dificultad: 'normal' };
+
+    function crearLuchador(tipo, equipo, nombre, esJugador, mapa, indice) {
+      const def = LUCHADORES[tipo];
+      const aparicion = mapa.apariciones[equipo][indice % mapa.apariciones[equipo].length];
+      return {
+        tipo, def, equipo, nombre, esJugador,
+        x: aparicion.x, y: aparicion.y, r: 20,
+        aparicion,
+        vida: def.vida, vidaMax: def.vida,
+        angulo: equipo === 0 ? Math.PI / 2 : -Math.PI / 2,
+        municion: 3, recargando: 0,
+        enfriamiento: 0,
+        cargaSuper: 0,
+        cristales: 0,
+        muerto: false, reaparicion: 0, invulnerable: 2,
+        ultimoDano: -99, ultimoDisparo: -99,
+        colaDisparos: [],
+        embestida: null,
+        // inteligencia artificial
+        ia: { pensar: 0, dirX: 0, dirY: 0, evitar: 0, anguloEvitar: 0, atascado: 0, ultimaX: 0, ultimaY: 0, objetivo: null, deambular: null },
+        // estadísticas
+        bajas: 0, muertes: 0, danoHecho: 0, cristalesRecogidos: 0,
+      };
+    }
+
+    function nuevaPartida() {
+      const mapa = construirMapa();
+      const tipos = Object.keys(LUCHADORES);
+      const nombres = mezclar(NOMBRES_BOT);
+      const luchadores = [];
+
+      // Equipo 0 (azul): jugador + 2 aliados
+      luchadores.push(crearLuchador(ajustes.tipoJugador, 0, ajustes.nombre || 'Tú', true, mapa, 1));
+      const aliados = mezclar(tipos.filter(t => t !== ajustes.tipoJugador)).slice(0, 2);
+      aliados.forEach((t, i) => luchadores.push(crearLuchador(t, 0, nombres[i], false, mapa, i === 0 ? 0 : 2)));
+
+      // Equipo 1 (rojo): 3 rivales con tipos variados
+      mezclar(tipos).slice(0, 3).forEach((t, i) => luchadores.push(crearLuchador(t, 1, nombres[2 + i], false, mapa, i)));
+
+      partida = {
+        mapa, luchadores,
+        balas: [], cristales: [], particulas: [], textos: [], avisos: [],
+        tiempo: 0,
+        temporizadorCristal: 2.5,
+        cuentaAtras: { equipo: -1, restante: 0 },
+        ganador: null, motivo: '',
+        temblor: 0,
+        dificultad: DIFICULTADES[ajustes.dificultad],
+        camara: { x: 0, y: 0 },
+        terminada: false,
+      };
+      aviso('¡Reúne ' + CRISTALES_PARA_GANAR + ' cristales y aguanta 15 s!', 3);
+      return partida;
+    }
+
+    const jugador = () => partida.luchadores[0];
+    const enemigosDe = l => partida.luchadores.filter(o => o.equipo !== l.equipo && !o.muerto);
+    const cristalesEquipo = equipo => partida.luchadores.filter(l => l.equipo === equipo && !l.muerto).reduce((s, l) => s + l.cristales, 0);
+
+    function aviso(texto, duracion = 2, color = '#ffffff') {
+      partida.avisos.push({ texto, restante: duracion, total: duracion, color });
+    }
+
+    function textoFlotante(x, y, texto, color) {
+      partida.textos.push({ x, y, texto, color, vida: 0.8 });
+    }
+
+    function particulas(x, y, color, cantidad, fuerza = 120) {
+      for (let i = 0; i < cantidad; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const v = azar(fuerza * 0.3, fuerza);
+        partida.particulas.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vida: azar(0.25, 0.55), color, r: azar(2, 5) });
+      }
+    }
+
+    /* =========================================================
+       COMBATE
+       ========================================================= */
+    function crearBala(duenio, x, y, angulo, opciones) {
+      const bala = {
+        duenio, equipo: duenio.equipo,
+        x, y,
+        vx: Math.cos(angulo) * opciones.velocidad,
+        vy: Math.sin(angulo) * opciones.velocidad,
+        dano: opciones.dano,
+        r: opciones.radio,
+        recorrido: 0,
+        alcance: opciones.alcance,
+        color: duenio.def.color,
+        perforante: !!opciones.perforante,
+        lanzamiento: !!opciones.lanzamiento,
+        area: opciones.area || 0,
+        esSuper: !!opciones.esSuper,
+        golpeados: new Set(),
+      };
+      partida.balas.push(bala);
+      return bala;
+    }
+
+    // Dispara el ataque normal hacia un ángulo. "distanciaObjetivo" se usa para los lanzamientos.
+    function disparar(l, angulo, distanciaObjetivo) {
+      if (l.muerto || l.municion < 1 || l.enfriamiento > 0) return false;
+      const at = l.def.ataque;
+      l.municion -= 1;
+      l.enfriamiento = 0.28;
+      l.angulo = angulo;
+      l.ultimoDisparo = partida.tiempo;
+      if (l.esJugador) sonido.disparo();
+
+      const base = { velocidad: at.velocidad, dano: at.dano, radio: at.radio, alcance: l.def.alcance };
+      const ox = l.x + Math.cos(angulo) * (l.r + 4);
+      const oy = l.y + Math.sin(angulo) * (l.r + 4);
+
+      if (at.tipo === 'escopeta') {
+        for (let i = 0; i < at.cantidad; i++) {
+          const a = angulo + (i / (at.cantidad - 1) - 0.5) * at.apertura + azar(-0.03, 0.03);
+          crearBala(l, ox, oy, a, { ...base, alcance: l.def.alcance * azar(0.85, 1) });
+        }
+      } else if (at.tipo === 'simple') {
+        crearBala(l, ox, oy, angulo, base);
+      } else if (at.tipo === 'rafaga') {
+        for (let i = 0; i < at.cantidad; i++) {
+          l.colaDisparos.push({ en: i * at.intervalo, angulo, opciones: base });
+        }
+      } else if (at.tipo === 'lanzamiento') {
+        const alcance = limitar(distanciaObjetivo || l.def.alcance, TILE * 1.5, l.def.alcance);
+        crearBala(l, l.x, l.y, angulo, { ...base, alcance, lanzamiento: true, area: at.area });
+      }
+      return true;
+    }
+
+    function usarSuper(l, angulo, distanciaObjetivo) {
+      if (l.muerto || l.cargaSuper < 100) return false;
+      const sp = l.def.super;
+      l.cargaSuper = 0;
+      l.angulo = angulo;
+      l.ultimoDisparo = partida.tiempo;
+      sonido.super();
+      particulas(l.x, l.y, '#ffd43b', 18, 160);
+
+      if (sp.tipo === 'embestida') {
+        l.embestida = { vx: Math.cos(angulo) * 620, vy: Math.sin(angulo) * 620, restante: 0.42, golpeados: new Set(), dano: sp.dano };
+        l.invulnerable = Math.max(l.invulnerable, 0.5);
+      } else if (sp.tipo === 'perforante') {
+        crearBala(l, l.x, l.y, angulo, { velocidad: sp.velocidad, dano: sp.dano, radio: sp.radio, alcance: l.def.alcance * 1.3, perforante: true, esSuper: true });
+      } else if (sp.tipo === 'nova') {
+        for (let i = 0; i < sp.cantidad; i++) {
+          const a = angulo + (i / sp.cantidad) * Math.PI * 2;
+          crearBala(l, l.x, l.y, a, { velocidad: sp.velocidad, dano: sp.dano, radio: sp.radio, alcance: l.def.alcance * 0.9, esSuper: true });
+        }
+      } else if (sp.tipo === 'lluvia') {
+        const alcance = limitar(distanciaObjetivo || l.def.alcance, TILE * 1.5, l.def.alcance);
+        for (let i = 0; i < sp.cantidad; i++) {
+          const a = angulo + azar(-0.12, 0.12);
+          crearBala(l, l.x, l.y, a, { velocidad: sp.velocidad, dano: sp.dano, radio: sp.radio, alcance: alcance * azar(0.85, 1.1), lanzamiento: true, area: sp.area, esSuper: true });
+        }
+      }
+      return true;
+    }
+
+    function herir(objetivo, dano, atacante) {
+      if (objetivo.muerto || objetivo.invulnerable > 0) return;
+      objetivo.vida -= dano;
+      objetivo.ultimoDano = partida.tiempo;
+      atacante.danoHecho += dano;
+      atacante.cargaSuper = Math.min(100, atacante.cargaSuper + 100 / atacante.def.superImpactos);
+      textoFlotante(objetivo.x + azar(-10, 10), objetivo.y - 30, String(Math.round(dano)), objetivo.equipo === 0 ? '#ff6b6b' : '#ffffff');
+      particulas(objetivo.x, objetivo.y, objetivo.def.color, 5, 90);
+      if (objetivo.esJugador || atacante.esJugador) sonido.impacto();
+      if (objetivo.esJugador) partida.temblor = Math.max(partida.temblor, 6);
+      if (objetivo.vida <= 0) morir(objetivo, atacante);
+    }
+
+    function morir(l, asesino) {
+      l.vida = 0;
+      l.muerto = true;
+      l.reaparicion = TIEMPO_REAPARICION;
+      l.muertes += 1;
+      l.embestida = null;
+      l.colaDisparos = [];
+      asesino.bajas += 1;
+      particulas(l.x, l.y, l.def.color, 26, 200);
+      sonido.muerte();
+
+      // Suelta todos sus cristales esparcidos alrededor
+      for (let i = 0; i < l.cristales; i++) {
+        let cx = l.x, cy = l.y;
+        for (let intento = 0; intento < 8; intento++) {
+          const a = Math.random() * Math.PI * 2, d = azar(20, 70);
+          const px = l.x + Math.cos(a) * d, py = l.y + Math.sin(a) * d;
+          if (!circuloChocaMuro(partida.mapa, px, py, 10)) { cx = px; cy = py; break; }
+        }
+        partida.cristales.push({ x: cx, y: cy, fase: Math.random() * 6, aparicion: 0.5 });
+      }
+      l.cristales = 0;
+
+      if (asesino.esJugador) aviso('¡Has eliminado a ' + l.nombre + '!', 1.6, '#ffd43b');
+      else if (l.esJugador) aviso(asesino.nombre + ' te ha eliminado', 1.6, '#ff6b6b');
+    }
+
+    function reaparecer(l) {
+      l.muerto = false;
+      l.vida = l.vidaMax;
+      l.x = l.aparicion.x;
+      l.y = l.aparicion.y;
+      l.municion = 3;
+      l.invulnerable = 2;
+      l.ia.objetivo = null;
+      particulas(l.x, l.y, '#ffffff', 14, 120);
+    }
+
+    /* =========================================================
+       INTELIGENCIA ARTIFICIAL DE LOS BOTS
+       ========================================================= */
+    function pensarBot(l, dt) {
+      const ia = l.ia;
+      const dif = partida.dificultad;
+      const mapa = partida.mapa;
+      ia.pensar -= dt;
+      if (ia.pensar > 0) return;
+      ia.pensar = azar(0.12, 0.22);
+
+      const enemigos = enemigosDe(l);
+      const distVista = dif.vista * TILE;
+
+      // Enemigo visible más cercano (los arbustos ocultan salvo de cerca o si acaba de disparar)
+      let objetivo = null, distObjetivo = Infinity;
+      for (const e of enemigos) {
+        const d = distancia(l.x, l.y, e.x, e.y);
+        const oculto = esArbusto(mapa, e.x, e.y) && d > 2.5 * TILE && partida.tiempo - e.ultimoDisparo > 1;
+        if (d < distVista && d < distObjetivo && !oculto) { objetivo = e; distObjetivo = d; }
+      }
+
+      const misCristales = cristalesEquipo(l.equipo);
+      const susCristales = cristalesEquipo(1 - l.equipo);
+      const vidaBaja = l.vida < l.vidaMax * 0.32;
+      const cargaLlena = l.cargaSuper >= 100;
+
+      // Decidir hacia dónde ir
+      let meta = null, modo = 'avanzar';
+      if (vidaBaja && (objetivo || partida.tiempo - l.ultimoDano < 2)) {
+        meta = l.aparicion; modo = 'huir';
+      } else if (misCristales >= CRISTALES_PARA_GANAR && l.cristales > 0) {
+        meta = { x: (l.aparicion.x + mapa.mina.x) / 2, y: (l.aparicion.y * 2 + mapa.mina.y) / 3 }; modo = 'defender';
+      } else {
+        // Cristal más cercano o la mina
+        let mejor = null, dm = Infinity;
+        for (const c of partida.cristales) {
+          const d = distancia(l.x, l.y, c.x, c.y) + (hayVision(mapa, l.x, l.y, c.x, c.y) ? 0 : 3 * TILE);
+          if (d < dm) { dm = d; mejor = c; }
+        }
+        if (mejor && dm < 9 * TILE) meta = mejor;
+        else {
+          if (!ia.deambular || distancia(l.x, l.y, ia.deambular.x, ia.deambular.y) < TILE) {
+            ia.deambular = { x: mapa.mina.x + azar(-2.5, 2.5) * TILE, y: mapa.mina.y + azar(-2.5, 2.5) * TILE };
+          }
+          meta = ia.deambular;
+        }
+        // Si el rival está a punto de ganar, prioriza cazar enemigos con cristales
+        if (susCristales >= CRISTALES_PARA_GANAR - 2) {
+          const portador = enemigos.filter(e => e.cristales > 0).sort((a, b) => distancia(l.x, l.y, a.x, a.y) - distancia(l.x, l.y, b.x, b.y))[0];
+          if (portador) { objetivo = portador; distObjetivo = distancia(l.x, l.y, portador.x, portador.y); meta = portador; modo = 'cazar'; }
+        }
+      }
+
+      // Combate
+      if (objetivo) {
+        const alcance = l.def.alcance;
+        const esLanzadora = l.def.ataque.tipo === 'lanzamiento';
+        const vision = esLanzadora || hayVision(mapa, l.x, l.y, objetivo.x, objetivo.y);
+
+        if (modo !== 'huir' && modo !== 'defender') {
+          if (distObjetivo > alcance * 0.85 || !vision) meta = objetivo;
+          else if (distObjetivo < alcance * 0.45 && l.def.ataque.tipo !== 'escopeta') {
+            // Mantener distancia: alejarse en perpendicular
+            const a = anguloHacia(objetivo.x, objetivo.y, l.x, l.y) + (Math.sin(partida.tiempo * 0.7 + l.x) > 0 ? 0.9 : -0.9);
+            meta = { x: l.x + Math.cos(a) * 3 * TILE, y: l.y + Math.sin(a) * 3 * TILE };
+          } else {
+            // Moverse lateralmente para esquivar
+            const a = anguloHacia(l.x, l.y, objetivo.x, objetivo.y) + (Math.sin(partida.tiempo * 1.3 + l.y) > 0 ? Math.PI / 2 : -Math.PI / 2);
+            meta = { x: l.x + Math.cos(a) * 2 * TILE, y: l.y + Math.sin(a) * 2 * TILE };
+          }
+        }
+
+        if (vision && distObjetivo <= alcance * 1.02 && partida.tiempo - l.ultimoDisparo > dif.reaccion) {
+          // Apuntar con anticipación según la velocidad del enemigo
+          const velBala = l.def.ataque.velocidad;
+          const t = distObjetivo / velBala;
+          const px = objetivo.x + (objetivo.ia.dirX || 0) * objetivo.def.velocidad * t * (objetivo.esJugador ? 0.7 : 1);
+          const py = objetivo.y + (objetivo.ia.dirY || 0) * objetivo.def.velocidad * t * (objetivo.esJugador ? 0.7 : 1);
+          const a = anguloHacia(l.x, l.y, px, py) + azar(-dif.punteria, dif.punteria);
+          // Los lanzamientos también fallan en distancia, no solo en ángulo
+          const distDisparo = distancia(l.x, l.y, px, py) * (esLanzadora ? 1 + azar(-dif.punteria * 2.5, dif.punteria * 2.5) : 1);
+          if (cargaLlena && distObjetivo < alcance * 0.9 && (l.def.super.tipo !== 'embestida' || distObjetivo < 4 * TILE)) {
+            usarSuper(l, a, distDisparo);
+          } else {
+            disparar(l, a, distDisparo);
+          }
+        }
+      }
+
+      // Dirección de movimiento hacia la meta, esquivando muros
+      ia.dirX = 0; ia.dirY = 0;
+      if (meta) {
+        let a = anguloHacia(l.x, l.y, meta.x, meta.y);
+        if (distancia(l.x, l.y, meta.x, meta.y) < 6 && modo !== 'avanzar') return;
+        // Detectar atasco
+        if (distancia(l.x, l.y, ia.ultimaX, ia.ultimaY) < 2) ia.atascado += 1; else ia.atascado = 0;
+        ia.ultimaX = l.x; ia.ultimaY = l.y;
+
+        if (ia.evitar > 0) { ia.evitar -= 1; a = ia.anguloEvitar; }
+        else {
+          const sondas = [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8, Math.PI];
+          for (const s of sondas) {
+            const pa = a + s;
+            const sx = l.x + Math.cos(pa) * (l.r + TILE * 0.9);
+            const sy = l.y + Math.sin(pa) * (l.r + TILE * 0.9);
+            if (!circuloChocaMuro(mapa, sx, sy, l.r * 0.9)) {
+              if (s !== 0) { ia.anguloEvitar = pa; ia.evitar = 3; }
+              a = pa;
+              break;
+            }
+          }
+          if (ia.atascado > 4) { ia.anguloEvitar = a + azar(-2.5, 2.5); ia.evitar = 5; ia.atascado = 0; a = ia.anguloEvitar; }
+        }
+        ia.dirX = Math.cos(a);
+        ia.dirY = Math.sin(a);
+      }
+    }
+
+    /* =========================================================
+       ACTUALIZACIÓN DE LA PARTIDA
+       ========================================================= */
+    function actualizar(dt) {
+      const p = partida;
+      if (p.terminada) return;
+      const mapa = p.mapa;
+      p.tiempo += dt;
+      p.temblor = Math.max(0, p.temblor - dt * 30);
+
+      // Aparición de cristales en la mina
+      const totalCristales = p.cristales.length + p.luchadores.reduce((s, l) => s + l.cristales, 0);
+      p.temporizadorCristal -= dt;
+      if (p.temporizadorCristal <= 0) {
+        p.temporizadorCristal = 5;
+        if (totalCristales < 24) {
+          p.cristales.push({ x: mapa.mina.x + azar(-30, 30), y: mapa.mina.y + azar(-30, 30), fase: Math.random() * 6, aparicion: 0.5 });
+          particulas(mapa.mina.x, mapa.mina.y, '#c77dff', 8, 60);
+        }
+      }
+
+      // Luchadores
+      for (const l of p.luchadores) {
+        if (l.muerto) {
+          l.reaparicion -= dt;
+          if (l.reaparicion <= 0) reaparecer(l);
+          continue;
+        }
+        l.invulnerable = Math.max(0, l.invulnerable - dt);
+        l.enfriamiento = Math.max(0, l.enfriamiento - dt);
+
+        // Recarga de munición
+        if (l.municion < 3) {
+          l.recargando += dt;
+          if (l.recargando >= l.def.recarga) { l.recargando = 0; l.municion += 1; }
+        }
+
+        // Curación pasiva tras unos segundos sin recibir daño
+        if (p.tiempo - l.ultimoDano > ESPERA_CURACION && l.vida < l.vidaMax) {
+          l.vida = Math.min(l.vidaMax, l.vida + l.vidaMax * 0.13 * dt);
+        }
+
+        // Ráfagas pendientes
+        for (const d of l.colaDisparos) d.en -= dt;
+        while (l.colaDisparos.length && l.colaDisparos[0].en <= 0) {
+          const d = l.colaDisparos.shift();
+          const ox = l.x + Math.cos(d.angulo) * (l.r + 4), oy = l.y + Math.sin(d.angulo) * (l.r + 4);
+          crearBala(l, ox, oy, d.angulo + azar(-0.02, 0.02), d.opciones);
+        }
+
+        // Movimiento
+        if (l.embestida) {
+          const e = l.embestida;
+          e.restante -= dt;
+          const movio = moverConColision(mapa, l, e.vx * dt, e.vy * dt);
+          for (const o of enemigosDe(l)) {
+            if (!e.golpeados.has(o) && distancia(l.x, l.y, o.x, o.y) < l.r + o.r + 6) {
+              e.golpeados.add(o);
+              herir(o, e.dano, l);
+              // Empujón
+              const a = anguloHacia(l.x, l.y, o.x, o.y);
+              moverConColision(mapa, o, Math.cos(a) * 40, Math.sin(a) * 40);
+            }
+          }
+          particulas(l.x, l.y, l.def.color, 2, 60);
+          if (e.restante <= 0 || !movio) l.embestida = null;
+        } else {
+          let dx = 0, dy = 0;
+          if (l.esJugador) { dx = entrada.movX; dy = entrada.movY; }
+          else { pensarBot(l, dt); dx = l.ia.dirX; dy = l.ia.dirY; }
+          const n = Math.hypot(dx, dy);
+          if (n > 0) {
+            dx /= Math.max(1, n); dy /= Math.max(1, n);
+            moverConColision(mapa, l, dx * l.def.velocidad * dt, dy * l.def.velocidad * dt);
+            if (!l.esJugador || !entrada.apuntando) l.angulo = Math.atan2(dy, dx);
+          }
+          if (l.esJugador) { l.ia.dirX = dx; l.ia.dirY = dy; }
+        }
+
+        // Recoger cristales
+        for (let i = p.cristales.length - 1; i >= 0; i--) {
+          const c = p.cristales[i];
+          if (c.aparicion > 0) continue;
+          if (distancia(l.x, l.y, c.x, c.y) < l.r + 12) {
+            p.cristales.splice(i, 1);
+            l.cristales += 1;
+            l.cristalesRecogidos += 1;
+            textoFlotante(l.x, l.y - 34, '+1', '#c77dff');
+            if (l.esJugador) sonido.recoger();
+          }
+        }
+      }
+
+      // Balas
+      for (let i = p.balas.length - 1; i >= 0; i--) {
+        const b = p.balas[i];
+        const paso = Math.hypot(b.vx, b.vy) * dt;
+        b.x += b.vx * dt; b.y += b.vy * dt; b.recorrido += paso;
+        let eliminar = false;
+
+        if (b.lanzamiento) {
+          if (b.recorrido >= b.alcance) {
+            explotar(b);
+            eliminar = true;
+          }
+        } else {
+          if (b.recorrido >= b.alcance) eliminar = true;
+          else if (!b.perforante && esMuro(mapa, b.x, b.y)) { eliminar = true; particulas(b.x, b.y, '#cccccc', 4, 70); }
+          else {
+            for (const o of p.luchadores) {
+              if (o.muerto || o.equipo === b.equipo || b.golpeados.has(o)) continue;
+              if (distancia(b.x, b.y, o.x, o.y) < b.r + o.r) {
+                b.golpeados.add(o);
+                herir(o, b.dano, b.duenio);
+                if (!b.perforante) { eliminar = true; break; }
+              }
+            }
+          }
+        }
+        if (eliminar) p.balas.splice(i, 1);
+      }
+
+      // Cristales (animación de aparición)
+      for (const c of p.cristales) { c.fase += dt * 3; c.aparicion = Math.max(0, c.aparicion - dt); }
+
+      // Partículas y textos
+      for (let i = p.particulas.length - 1; i >= 0; i--) {
+        const q = p.particulas[i];
+        q.vida -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.9; q.vy *= 0.9;
+        if (q.vida <= 0) p.particulas.splice(i, 1);
+      }
+      for (let i = p.textos.length - 1; i >= 0; i--) {
+        const t = p.textos[i];
+        t.vida -= dt; t.y -= 40 * dt;
+        if (t.vida <= 0) p.textos.splice(i, 1);
+      }
+      for (let i = p.avisos.length - 1; i >= 0; i--) {
+        p.avisos[i].restante -= dt;
+        if (p.avisos[i].restante <= 0) p.avisos.splice(i, 1);
+      }
+
+      // Cuenta atrás de victoria
+      const c0 = cristalesEquipo(0), c1 = cristalesEquipo(1);
+      let equipoLider = -1;
+      if (c0 >= CRISTALES_PARA_GANAR && c1 < CRISTALES_PARA_GANAR) equipoLider = 0;
+      if (c1 >= CRISTALES_PARA_GANAR && c0 < CRISTALES_PARA_GANAR) equipoLider = 1;
+      if (equipoLider !== p.cuentaAtras.equipo) {
+        if (p.cuentaAtras.equipo !== -1 && equipoLider === -1) aviso('¡Cuenta atrás cancelada!', 1.5, '#ffd43b');
+        p.cuentaAtras.equipo = equipoLider;
+        p.cuentaAtras.restante = CUENTA_ATRAS;
+        if (equipoLider === 0) aviso('¡Tu equipo tiene ' + CRISTALES_PARA_GANAR + ' cristales! ¡Aguantad!', 2, '#8ef05a');
+        if (equipoLider === 1) aviso('¡El rival tiene ' + CRISTALES_PARA_GANAR + ' cristales! ¡A por ellos!', 2, '#ff6b6b');
+      }
+      if (p.cuentaAtras.equipo !== -1) {
+        p.cuentaAtras.restante -= dt;
+        if (p.cuentaAtras.restante <= 0) terminar(p.cuentaAtras.equipo, 'Un equipo ha conservado ' + CRISTALES_PARA_GANAR + ' cristales durante ' + CUENTA_ATRAS + ' segundos.');
+      }
+
+      // Límite de tiempo
+      if (!p.terminada && p.tiempo >= DURACION_MAXIMA) {
+        if (c0 > c1) terminar(0, 'Se acabó el tiempo: tu equipo tenía más cristales.');
+        else if (c1 > c0) terminar(1, 'Se acabó el tiempo: el rival tenía más cristales.');
+        else terminar(-1, 'Se acabó el tiempo con los mismos cristales.');
+      }
+
+      // Cámara que sigue al jugador
+      const j = jugador();
+      p.camara.x = mapa.ancho <= W ? (mapa.ancho - W) / 2 : limitar(j.x - W / 2, 0, mapa.ancho - W);
+      p.camara.y = mapa.alto <= H ? (mapa.alto - H) / 2 : limitar(j.y - H / 2, 0, mapa.alto - H);
+    }
+
+    function explotar(b) {
+      particulas(b.x, b.y, b.color, 16, 180);
+      partida.temblor = Math.max(partida.temblor, 4);
+      for (const o of partida.luchadores) {
+        if (o.muerto || o.equipo === b.equipo) continue;
+        if (distancia(b.x, b.y, o.x, o.y) < b.area + o.r) herir(o, b.dano, b.duenio);
+      }
+      partida.particulas.push({ x: b.x, y: b.y, vx: 0, vy: 0, vida: 0.3, color: b.color, r: b.area, anillo: true });
+    }
+
+    function terminar(equipoGanador, motivo) {
+      if (partida.terminada) return;
+      partida.terminada = true;
+      partida.ganador = equipoGanador;
+      partida.motivo = motivo;
+      if (equipoGanador === 0) sonido.victoria(); else if (equipoGanador === 1) sonido.derrota();
+      setTimeout(mostrarFinal, 1400);
+    }
+
+    /* =========================================================
+       ENTRADA: TECLADO, RATÓN Y TÁCTIL
+       ========================================================= */
+    const entrada = {
+      teclas: new Set(),
+      movX: 0, movY: 0,
+      ratonX: 0, ratonY: 0, hayRaton: false,
+      apuntando: false,
+      toques: { mover: null, apuntar: null, super: null },
+      esTactil: false,
+    };
+
+    // Navegadores antiguos sin roundRect
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        r = Math.min(r, w / 2, h / 2);
+        this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+        return this;
+      };
+    }
+
+    const canvas = document.getElementById('juego');
+    let ctx = canvas.getContext('2d'); // reasignable: los retratos del menú se dibujan en otro lienzo
+    let W = 0, H = 0, DPR = 1;
+
+    function redimensionar() {
+      DPR = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    window.addEventListener('resize', redimensionar);
+    redimensionar();
+
+    const enJuego = () => partida && !partida.terminada && document.getElementById('menu').classList.contains('oculta') && document.getElementById('final').classList.contains('oculta');
+
+    function posicionMundo(px, py) { return { x: px + partida.camara.x, y: py + partida.camara.y }; }
+
+    // Busca el enemigo visible más cercano dentro del alcance (para el disparo automático)
+    function objetivoAutomatico(l, factorAlcance = 1) {
+      let mejor = null, dm = Infinity;
+      for (const e of enemigosDe(l)) {
+        const d = distancia(l.x, l.y, e.x, e.y);
+        if (d > l.def.alcance * factorAlcance) continue;
+        if (!enemigoVisibleParaJugador(e)) continue;
+        if (l.def.ataque.tipo !== 'lanzamiento' && !hayVision(partida.mapa, l.x, l.y, e.x, e.y)) continue;
+        if (d < dm) { dm = d; mejor = e; }
+      }
+      return mejor;
+    }
+
+    function dispararJugadorHacia(mx, my) {
+      const j = jugador();
+      if (j.muerto) return;
+      const a = anguloHacia(j.x, j.y, mx, my);
+      disparar(j, a, distancia(j.x, j.y, mx, my));
+    }
+
+    function dispararJugadorAuto() {
+      const j = jugador();
+      if (j.muerto) return;
+      const o = objetivoAutomatico(j);
+      if (o) {
+        const t = distancia(j.x, j.y, o.x, o.y) / j.def.ataque.velocidad;
+        const px = o.x + (o.ia.dirX || 0) * o.def.velocidad * t;
+        const py = o.y + (o.ia.dirY || 0) * o.def.velocidad * t;
+        dispararJugadorHacia(px, py);
+      } else {
+        dispararJugadorHacia(j.x + Math.cos(j.angulo) * 100, j.y + Math.sin(j.angulo) * 100);
+      }
+    }
+
+    function superJugadorHacia(mx, my) {
+      const j = jugador();
+      if (j.muerto) return;
+      if (j.cargaSuper < 100) { textoFlotante(j.x, j.y - 40, 'Súper sin cargar', '#ffd43b'); return; }
+      usarSuper(j, anguloHacia(j.x, j.y, mx, my), distancia(j.x, j.y, mx, my));
+    }
+
+    function superJugadorAuto() {
+      const j = jugador();
+      if (j.muerto) return;
+      const o = objetivoAutomatico(j, 1.2);
+      if (o) superJugadorHacia(o.x, o.y);
+      else superJugadorHacia(j.x + Math.cos(j.angulo) * 100, j.y + Math.sin(j.angulo) * 100);
+    }
+
+    // Teclado
+    window.addEventListener('keydown', e => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+      entrada.teclas.add(e.key.toLowerCase());
+      if (!enJuego()) return;
+      if (e.key === ' ') {
+        if (entrada.hayRaton) { const m = posicionMundo(entrada.ratonX, entrada.ratonY); dispararJugadorHacia(m.x, m.y); }
+        else dispararJugadorAuto();
+      }
+      if (e.key.toLowerCase() === 'e' || e.key === 'Shift') {
+        if (entrada.hayRaton) { const m = posicionMundo(entrada.ratonX, entrada.ratonY); superJugadorHacia(m.x, m.y); }
+        else superJugadorAuto();
+      }
+      if (e.key.toLowerCase() === 'm') { sonido.activo = !sonido.activo; aviso(sonido.activo ? 'Sonido activado' : 'Sonido silenciado', 1); }
+    });
+    window.addEventListener('keyup', e => entrada.teclas.delete(e.key.toLowerCase()));
+
+    function leerTeclado() {
+      const t = entrada.teclas;
+      let x = 0, y = 0;
+      if (t.has('a') || t.has('arrowleft')) x -= 1;
+      if (t.has('d') || t.has('arrowright')) x += 1;
+      if (t.has('w') || t.has('arrowup')) y -= 1;
+      if (t.has('s') || t.has('arrowdown')) y += 1;
+      return { x, y };
+    }
+
+    // Ratón
+    canvas.addEventListener('mousemove', e => { entrada.ratonX = e.clientX; entrada.ratonY = e.clientY; entrada.hayRaton = true; });
+    canvas.addEventListener('mousedown', e => {
+      sonido.iniciar();
+      if (!enJuego() || entrada.esTactil) return;
+      const m = posicionMundo(e.clientX, e.clientY);
+      if (e.button === 0) dispararJugadorHacia(m.x, m.y);
+      if (e.button === 2) superJugadorHacia(m.x, m.y);
+    });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Táctil
+    const RADIO_JOYSTICK = 56;
+    function botonSuper() { return { x: W - 70, y: H - 150, r: 38 }; }
+
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      sonido.iniciar();
+      entrada.esTactil = true;
+      entrada.hayRaton = false;
+      if (!enJuego()) return;
+      for (const t of e.changedTouches) {
+        const bs = botonSuper();
+        if (distancia(t.clientX, t.clientY, bs.x, bs.y) < bs.r + 14 && !entrada.toques.super) {
+          entrada.toques.super = { id: t.identifier, ox: t.clientX, oy: t.clientY, x: t.clientX, y: t.clientY, t0: performance.now() };
+        } else if (t.clientX < W / 2 && !entrada.toques.mover) {
+          entrada.toques.mover = { id: t.identifier, ox: t.clientX, oy: t.clientY, x: t.clientX, y: t.clientY };
+        } else if (!entrada.toques.apuntar) {
+          entrada.toques.apuntar = { id: t.identifier, ox: t.clientX, oy: t.clientY, x: t.clientX, y: t.clientY, t0: performance.now() };
+        }
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        for (const clave of ['mover', 'apuntar', 'super']) {
+          const j = entrada.toques[clave];
+          if (j && j.id === t.identifier) { j.x = t.clientX; j.y = t.clientY; }
+        }
+      }
+    }, { passive: false });
+
+    function finToque(e) {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        const tq = entrada.toques;
+        if (tq.mover && tq.mover.id === t.identifier) tq.mover = null;
+        if (tq.apuntar && tq.apuntar.id === t.identifier) {
+          const j = tq.apuntar; tq.apuntar = null;
+          if (!enJuego()) continue;
+          const dx = j.x - j.ox, dy = j.y - j.oy, d = Math.hypot(dx, dy);
+          if (d < 16 && performance.now() - j.t0 < 300) dispararJugadorAuto();
+          else if (d >= 16) {
+            const p = jugador();
+            const alcance = Math.min(1, d / (RADIO_JOYSTICK * 1.6)) * p.def.alcance;
+            dispararJugadorHacia(p.x + dx / d * alcance, p.y + dy / d * alcance);
+          }
+        }
+        if (tq.super && tq.super.id === t.identifier) {
+          const j = tq.super; tq.super = null;
+          if (!enJuego()) continue;
+          const dx = j.x - j.ox, dy = j.y - j.oy, d = Math.hypot(dx, dy);
+          if (d < 16) superJugadorAuto();
+          else {
+            const p = jugador();
+            const alcance = Math.min(1, d / (RADIO_JOYSTICK * 1.6)) * p.def.alcance;
+            superJugadorHacia(p.x + dx / d * alcance, p.y + dy / d * alcance);
+          }
+        }
+      }
+    }
+    canvas.addEventListener('touchend', finToque, { passive: false });
+    canvas.addEventListener('touchcancel', finToque, { passive: false });
+
+    function leerEntrada() {
+      const j = partida ? jugador() : null;
+      let { x, y } = leerTeclado();
+      const tm = entrada.toques.mover;
+      if (tm) {
+        const dx = tm.x - tm.ox, dy = tm.y - tm.oy, d = Math.hypot(dx, dy);
+        if (d > 6) { const f = Math.min(1, d / RADIO_JOYSTICK); x = dx / d * f; y = dy / d * f; }
+      }
+      entrada.movX = x; entrada.movY = y;
+
+      // El jugador mira hacia donde apunta
+      entrada.apuntando = false;
+      if (j && !j.muerto) {
+        const ta = entrada.toques.apuntar || entrada.toques.super;
+        if (ta && Math.hypot(ta.x - ta.ox, ta.y - ta.oy) > 16) { j.angulo = Math.atan2(ta.y - ta.oy, ta.x - ta.ox); entrada.apuntando = true; }
+        else if (entrada.hayRaton && !entrada.esTactil) { const m = posicionMundo(entrada.ratonX, entrada.ratonY); j.angulo = anguloHacia(j.x, j.y, m.x, m.y); entrada.apuntando = true; }
+      }
+    }
+
+    /* =========================================================
+       DIBUJO
+       ========================================================= */
+    function enemigoVisibleParaJugador(e) {
+      const j = jugador();
+      if (!esArbusto(partida.mapa, e.x, e.y)) return true;
+      if (distancia(j.x, j.y, e.x, e.y) < 2.5 * TILE) return true;
+      if (partida.tiempo - e.ultimoDisparo < 1) return true;
+      if (partida.tiempo - e.ultimoDano < 0.6) return true;
+      return false;
+    }
+
+    function dibujarForma(x, y, r, forma, angulo) {
+      ctx.beginPath();
+      if (forma === 'cuadrado') {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angulo);
+        const s = r * 0.9;
+        ctx.roundRect(-s, -s, s * 2, s * 2, 6);
+        ctx.restore();
+      } else if (forma === 'rombo') {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angulo);
+        ctx.moveTo(r * 1.15, 0); ctx.lineTo(0, r * 0.9); ctx.lineTo(-r * 1.0, 0); ctx.lineTo(0, -r * 0.9); ctx.closePath();
+        ctx.restore();
+      } else if (forma === 'triangulo') {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angulo);
+        ctx.moveTo(r * 1.1, 0); ctx.lineTo(-r * 0.8, r * 0.95); ctx.lineTo(-r * 0.8, -r * 0.95); ctx.closePath();
+        ctx.restore();
+      } else {
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+      }
+    }
+
+    function dibujarLuchador(l, esMiniatura = false) {
+      const j = partida ? jugador() : null;
+      const esAliado = !partida || l.equipo === 0;
+      const parpadeo = l.invulnerable > 0 && Math.floor(partida.tiempo * 12) % 2 === 0;
+      const oculto = partida && esArbusto(partida.mapa, l.x, l.y);
+
+      ctx.save();
+      if (parpadeo) ctx.globalAlpha = 0.55;
+      if (oculto && l.equipo === 0) ctx.globalAlpha *= 0.7;
+
+      // Sombra
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(l.x, l.y + l.r * 0.75, l.r * 0.95, l.r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Anillo de equipo
+      if (!esMiniatura) {
+        ctx.strokeStyle = l.esJugador ? '#ffd43b' : (esAliado ? '#4fa3ff' : '#ff4d4d');
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(l.x, l.y, l.r + 5, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      // Cuerpo
+      dibujarForma(l.x, l.y, l.r, l.def.forma, l.angulo);
+      ctx.fillStyle = l.def.color; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = l.def.colorOscuro; ctx.stroke();
+
+      // Ojos mirando hacia donde apunta
+      const ex = l.x + Math.cos(l.angulo) * l.r * 0.45, ey = l.y + Math.sin(l.angulo) * l.r * 0.45;
+      const px = -Math.sin(l.angulo) * l.r * 0.32, py = Math.cos(l.angulo) * l.r * 0.32;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(ex + px, ey + py, l.r * 0.22, 0, Math.PI * 2); ctx.arc(ex - px, ey - py, l.r * 0.22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1b1f3a';
+      const dx = Math.cos(l.angulo) * l.r * 0.08, dy = Math.sin(l.angulo) * l.r * 0.08;
+      ctx.beginPath(); ctx.arc(ex + px + dx, ey + py + dy, l.r * 0.1, 0, Math.PI * 2); ctx.arc(ex - px + dx, ey - py + dy, l.r * 0.1, 0, Math.PI * 2); ctx.fill();
+
+      // Cañón / arma
+      ctx.strokeStyle = l.def.colorOscuro; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(l.x + Math.cos(l.angulo) * l.r * 0.6, l.y + Math.sin(l.angulo) * l.r * 0.6);
+      ctx.lineTo(l.x + Math.cos(l.angulo) * (l.r + 10), l.y + Math.sin(l.angulo) * (l.r + 10)); ctx.stroke();
+
+      ctx.restore();
+      if (esMiniatura) return;
+
+      // Nombre, vida y cristales
+      const ancho = 56, alto = 8, bx = l.x - ancho / 2, by = l.y - l.r - 24;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, ancho + 4, alto + 4, 4); ctx.fill();
+      ctx.fillStyle = esAliado ? (l.esJugador ? '#8ef05a' : '#4fa3ff') : '#ff4d4d';
+      ctx.fillRect(bx, by, ancho * limitar(l.vida / l.vidaMax, 0, 1), alto);
+      // Marcas de vida cada 1000 puntos
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      for (let v = 1000; v < l.vidaMax; v += 1000) ctx.fillRect(bx + ancho * v / l.vidaMax - 0.5, by, 1, alto);
+
+      ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.fillStyle = l.esJugador ? '#ffd43b' : '#ffffff';
+      ctx.strokeText(l.nombre, l.x, by - 3); ctx.fillText(l.nombre, l.x, by - 3);
+
+      if (l.cristales > 0) {
+        const gx = l.x + ancho / 2 + 10, gy = by + alto / 2;
+        dibujarCristal(gx, gy, 7, 0);
+        ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff'; ctx.strokeText(String(l.cristales), gx + 9, gy); ctx.fillText(String(l.cristales), gx + 9, gy);
+      }
+
+      // Indicador de súper lista
+      if (l.cargaSuper >= 100 && !l.esJugador) {
+        ctx.fillStyle = '#ffd43b'; ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('★', l.x - ancho / 2 - 10, by + alto / 2);
+      }
+    }
+
+    function dibujarCristal(x, y, tam, fase) {
+      const bob = Math.sin(fase) * 2;
+      ctx.save();
+      ctx.translate(x, y + bob);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(0, tam + 4 - bob, tam * 0.9, tam * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+      const g = ctx.createLinearGradient(-tam, -tam, tam, tam);
+      g.addColorStop(0, '#e9c6ff'); g.addColorStop(0.5, '#b04dff'); g.addColorStop(1, '#5a1a9c');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(0, -tam * 1.3); ctx.lineTo(tam, 0); ctx.lineTo(0, tam * 1.3); ctx.lineTo(-tam, 0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath(); ctx.moveTo(-tam * 0.3, -tam * 0.6); ctx.lineTo(0, -tam * 1.0); ctx.lineTo(tam * 0.3, -tam * 0.4); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    function dibujarMapa() {
+      const m = partida.mapa, cam = partida.camara;
+      const c0 = Math.max(0, Math.floor(cam.x / TILE)), c1 = Math.min(m.columnas - 1, Math.ceil((cam.x + W) / TILE));
+      const f0 = Math.max(0, Math.floor(cam.y / TILE)), f1 = Math.min(m.filas - 1, Math.ceil((cam.y + H) / TILE));
+
+      // Suelo
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          const x = c * TILE, y = f * TILE;
+          const ladoAzul = f < m.filas / 2;
+          ctx.fillStyle = (c + f) % 2 === 0 ? (ladoAzul ? '#d9c79a' : '#d6c08f') : (ladoAzul ? '#cdb98a' : '#c9b17d');
+          ctx.fillRect(x, y, TILE, TILE);
+        }
+      }
+
+      // Zonas de aparición
+      for (let eq = 0; eq < 2; eq++) {
+        ctx.fillStyle = eq === 0 ? 'rgba(79,163,255,0.22)' : 'rgba(255,77,77,0.22)';
+        for (const a of m.apariciones[eq]) {
+          ctx.beginPath(); ctx.arc(a.x, a.y, TILE * 0.55, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // Mina
+      ctx.save();
+      ctx.translate(m.mina.x, m.mina.y);
+      ctx.fillStyle = '#6b5a4a';
+      ctx.beginPath(); ctx.ellipse(0, 0, TILE * 1.1, TILE * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3d3128';
+      ctx.beginPath(); ctx.ellipse(0, 0, TILE * 0.8, TILE * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+      const pulso = 0.5 + 0.5 * Math.sin(partida.tiempo * 3);
+      ctx.fillStyle = 'rgba(199,125,255,' + (0.25 + pulso * 0.35) + ')';
+      ctx.beginPath(); ctx.ellipse(0, 0, TILE * 0.5, TILE * 0.33, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+
+      // Muros (bloques con cara superior)
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          if (m.casillas[f][c] !== '#') continue;
+          const x = c * TILE, y = f * TILE;
+          ctx.fillStyle = '#5b4b7a';
+          ctx.fillRect(x, y + 6, TILE, TILE - 6);
+          ctx.fillStyle = '#8a7ab0';
+          ctx.fillRect(x, y - 6, TILE, TILE - 6);
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y - 5.5, TILE - 1, TILE - 7);
+        }
+      }
+    }
+
+    function dibujarArbustos(encima) {
+      const m = partida.mapa, cam = partida.camara;
+      const c0 = Math.max(0, Math.floor(cam.x / TILE)), c1 = Math.min(m.columnas - 1, Math.ceil((cam.x + W) / TILE));
+      const f0 = Math.max(0, Math.floor(cam.y / TILE)), f1 = Math.min(m.filas - 1, Math.ceil((cam.y + H) / TILE));
+      ctx.save();
+      ctx.globalAlpha = encima ? 0.88 : 1;
+      for (let f = f0; f <= f1; f++) {
+        for (let c = c0; c <= c1; c++) {
+          if (m.casillas[f][c] !== 'b') continue;
+          const x = c * TILE + TILE / 2, y = f * TILE + TILE / 2;
+          const mece = Math.sin(partida.tiempo * 1.5 + c * 1.7 + f * 0.9) * 1.5;
+          for (let k = 0; k < 4; k++) {
+            const a = k * Math.PI / 2 + 0.6;
+            ctx.fillStyle = k % 2 === 0 ? '#3f9c3a' : '#2f7d2d';
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * 10 + mece, y + Math.sin(a) * 10, TILE * 0.36, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.fillStyle = '#4fb84a';
+          ctx.beginPath(); ctx.arc(x + mece, y, TILE * 0.32, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    function dibujarBala(b) {
+      if (b.lanzamiento) {
+        const t = limitar(b.recorrido / b.alcance, 0, 1);
+        const altura = Math.sin(t * Math.PI) * 70;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath(); ctx.ellipse(b.x, b.y, b.r, b.r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = b.color;
+        ctx.beginPath(); ctx.arc(b.x, b.y - altura, b.r * (1 + 0.4 * Math.sin(t * Math.PI)), 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+        return;
+      }
+      ctx.save();
+      if (b.esSuper) { ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 14; }
+      ctx.fillStyle = b.esSuper ? '#ffe680' : b.color;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.restore();
+    }
+
+    function dibujarHUD() {
+      const p = partida, j = jugador();
+      const c0 = cristalesEquipo(0), c1 = cristalesEquipo(1);
+
+      // Marcador superior
+      const cx = W / 2, cy = 34;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.roundRect(cx - 120, 8, 240, 52, 14); ctx.fill();
+      ctx.font = 'bold 28px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right'; ctx.fillStyle = '#4fa3ff'; ctx.fillText(String(c0), cx - 24, cy);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#ff4d4d'; ctx.fillText(String(c1), cx + 24, cy);
+      dibujarCristal(cx, cy, 10, p.tiempo * 3);
+
+      // Cuenta atrás o tiempo restante
+      ctx.textAlign = 'center';
+      if (p.cuentaAtras.equipo !== -1 && !p.terminada) {
+        const s = Math.max(0, Math.ceil(p.cuentaAtras.restante));
+        ctx.font = 'bold 44px system-ui, sans-serif';
+        ctx.fillStyle = p.cuentaAtras.equipo === 0 ? '#8ef05a' : '#ff6b6b';
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 5;
+        ctx.strokeText(String(s), cx, 96); ctx.fillText(String(s), cx, 96);
+      } else {
+        const restante = Math.max(0, DURACION_MAXIMA - p.tiempo);
+        const mm = Math.floor(restante / 60), ss = Math.floor(restante % 60);
+        ctx.font = 'bold 14px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillText(mm + ':' + String(ss).padStart(2, '0'), cx, 72);
+      }
+
+      // Avisos
+      let ay = H * 0.3;
+      for (const a of p.avisos) {
+        const alfa = Math.min(1, a.restante / 0.4);
+        ctx.globalAlpha = alfa;
+        ctx.font = 'bold ' + Math.round(limitar(W / 24, 13, 20)) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 5; ctx.fillStyle = a.color;
+        ctx.strokeText(a.texto, W / 2, ay, W - 24); ctx.fillText(a.texto, W / 2, ay, W - 24);
+        ctx.globalAlpha = 1;
+        ay += 28;
+      }
+
+      // Panel del jugador (abajo a la izquierda en escritorio, centrado abajo en móvil)
+      const px = entrada.esTactil ? W / 2 - 90 : 16, py = H - 74;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.roundRect(px, py, 180, 60, 12); ctx.fill();
+      ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillStyle = '#ffd43b'; ctx.fillText(j.def.nombre + ' · ' + j.nombre, px + 10, py + 6);
+      // Vida
+      ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(px + 10, py + 26, 160, 10);
+      ctx.fillStyle = '#8ef05a'; ctx.fillRect(px + 10, py + 26, 160 * limitar(j.vida / j.vidaMax, 0, 1), 10);
+      ctx.font = 'bold 10px system-ui, sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
+      ctx.fillText(Math.max(0, Math.round(j.vida)) + ' / ' + j.vidaMax, px + 90, py + 25);
+      // Munición
+      for (let i = 0; i < 3; i++) {
+        const lleno = i < j.municion;
+        const parcial = i === j.municion ? j.recargando / j.def.recarga : 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(px + 10 + i * 54, py + 42, 50, 9);
+        ctx.fillStyle = '#ff9f1c'; ctx.fillRect(px + 10 + i * 54, py + 42, 50 * (lleno ? 1 : parcial), 9);
+      }
+
+      // Barra de súper (y botón táctil)
+      const bs = botonSuper();
+      if (entrada.esTactil) {
+        const lista = j.cargaSuper >= 100;
+        ctx.fillStyle = lista ? 'rgba(255,212,59,0.95)' : 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.arc(bs.x, bs.y, bs.r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffd43b'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(bs.x, bs.y, bs.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * j.cargaSuper / 100); ctx.stroke();
+        ctx.font = 'bold 22px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = lista ? '#3a2a00' : '#ffd43b'; ctx.fillText('★', bs.x, bs.y + 1);
+        if (lista && Math.floor(p.tiempo * 4) % 2 === 0) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bs.x, bs.y, bs.r + 8, 0, Math.PI * 2); ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.roundRect(px + 190, py + 20, 120, 40, 10); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(px + 200, py + 40, 100, 10);
+        ctx.fillStyle = '#ffd43b'; ctx.fillRect(px + 200, py + 40, j.cargaSuper, 10);
+        ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = '#ffd43b';
+        ctx.fillText(j.cargaSuper >= 100 ? '★ SÚPER LISTA (E)' : 'Súper', px + 200, py + 25);
+      }
+
+      // Joysticks táctiles
+      for (const clave of ['mover', 'apuntar']) {
+        const t = entrada.toques[clave];
+        if (!t) continue;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(t.ox, t.oy, RADIO_JOYSTICK, 0, Math.PI * 2); ctx.stroke();
+        const dx = t.x - t.ox, dy = t.y - t.oy, d = Math.hypot(dx, dy);
+        const f = Math.min(1, d / RADIO_JOYSTICK);
+        const kx = t.ox + (d ? dx / d : 0) * f * RADIO_JOYSTICK, ky = t.oy + (d ? dy / d : 0) * f * RADIO_JOYSTICK;
+        ctx.fillStyle = clave === 'mover' ? 'rgba(255,255,255,0.6)' : 'rgba(255,100,100,0.7)';
+        ctx.beginPath(); ctx.arc(kx, ky, 24, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Indicador de alcance mientras se apunta en táctil
+      const ta = entrada.toques.apuntar || entrada.toques.super;
+      if (ta && Math.hypot(ta.x - ta.ox, ta.y - ta.oy) > 16 && !j.muerto) {
+        const sx = j.x - p.camara.x, sy = j.y - p.camara.y;
+        const d = Math.hypot(ta.x - ta.ox, ta.y - ta.oy);
+        const alcance = Math.min(1, d / (RADIO_JOYSTICK * 1.6)) * j.def.alcance;
+        ctx.save();
+        ctx.strokeStyle = entrada.toques.super ? 'rgba(255,212,59,0.8)' : 'rgba(255,255,255,0.6)'; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(j.angulo) * alcance, sy + Math.sin(j.angulo) * alcance); ctx.stroke();
+        ctx.restore();
+      }
+
+      // Reaparición
+      if (j.muerto) {
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
+        ctx.font = 'bold 30px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff';
+        ctx.fillText('Reapareces en ' + Math.ceil(j.reaparicion) + '…', W / 2, H / 2);
+      }
+
+      // Mensaje de final de partida
+      if (p.terminada) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, H / 2 - 50, W, 100);
+        ctx.font = 'bold 48px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = p.ganador === 0 ? '#ffd43b' : p.ganador === 1 ? '#ff6b6b' : '#ffffff';
+        ctx.fillText(p.ganador === 0 ? '¡VICTORIA!' : p.ganador === 1 ? 'DERROTA' : 'EMPATE', W / 2, H / 2);
+      }
+    }
+
+    function dibujar() {
+      ctx.fillStyle = '#1b1f3a';
+      ctx.fillRect(0, 0, W, H);
+      if (!partida) return;
+      const p = partida;
+
+      ctx.save();
+      const tx = p.temblor ? azar(-p.temblor, p.temblor) : 0, ty = p.temblor ? azar(-p.temblor, p.temblor) : 0;
+      ctx.translate(-Math.round(p.camara.x + tx), -Math.round(p.camara.y + ty));
+
+      dibujarMapa();
+      dibujarArbustos(false);
+
+      for (const c of p.cristales) {
+        const esc = c.aparicion > 0 ? 1 - c.aparicion / 0.5 : 1;
+        dibujarCristal(c.x, c.y, 9 * esc, c.fase);
+      }
+
+      // Luchadores (enemigos ocultos en arbustos no se dibujan)
+      for (const l of p.luchadores) {
+        if (l.muerto) continue;
+        if (l.equipo !== 0 && !enemigoVisibleParaJugador(l)) continue;
+        dibujarLuchador(l);
+      }
+
+      for (const b of p.balas) dibujarBala(b);
+
+      dibujarArbustos(true);
+
+      for (const q of p.particulas) {
+        ctx.globalAlpha = limitar(q.vida / 0.4, 0, 1);
+        if (q.anillo) {
+          ctx.strokeStyle = q.color; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.3 - q.vida), 0, Math.PI * 2); ctx.stroke();
+        } else {
+          ctx.fillStyle = q.color;
+          ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.font = 'bold 15px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (const t of p.textos) {
+        ctx.globalAlpha = limitar(t.vida / 0.3, 0, 1);
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.fillStyle = t.color;
+        ctx.strokeText(t.texto, t.x, t.y); ctx.fillText(t.texto, t.x, t.y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      dibujarHUD();
+    }
+
+    /* =========================================================
+       BUCLE PRINCIPAL
+       ========================================================= */
+    let ultimoTiempo = performance.now();
+    function bucle(ahora) {
+      const dt = Math.min(0.05, (ahora - ultimoTiempo) / 1000);
+      ultimoTiempo = ahora;
+      if (partida && document.getElementById('menu').classList.contains('oculta')) {
+        leerEntrada();
+        if (!partida.terminada) actualizar(dt);
+        else {
+          // Tras terminar, solo animamos las partículas
+          partida.tiempo += dt;
+          for (const q of partida.particulas) { q.vida -= dt; q.x += q.vx * dt; q.y += q.vy * dt; }
+          partida.particulas = partida.particulas.filter(q => q.vida > 0);
+        }
+        dibujar();
+      }
+      requestAnimationFrame(bucle);
+    }
+    requestAnimationFrame(bucle);
+
+    /* =========================================================
+       MENÚ Y PANTALLA FINAL
+       ========================================================= */
+    const menu = document.getElementById('menu');
+    const final = document.getElementById('final');
+    const contenedorTarjetas = document.getElementById('tarjetas');
+
+    function construirTarjetas() {
+      contenedorTarjetas.innerHTML = '';
+      for (const [clave, def] of Object.entries(LUCHADORES)) {
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta' + (clave === ajustes.tipoJugador ? ' elegida' : '');
+        tarjeta.dataset.tipo = clave;
+        const lienzo = document.createElement('canvas');
+        lienzo.width = 168; lienzo.height = 168;
+        tarjeta.appendChild(lienzo);
+        const vel = Math.round((def.velocidad - 140) / 40 * 100);
+        tarjeta.insertAdjacentHTML('beforeend',
+          '<b>' + def.nombre + '</b>' +
+          '<small><b style="font-size:.78rem;color:#ffd43b">' + def.rol + '</b></small>' +
+          '<small>' + def.descripcion + '</small>' +
+          '<div class="barras">' +
+            '<span>Vida</span><div class="barra"><span style="width:' + Math.round(def.vida / 50) + '%"></span></div>' +
+            '<span>Daño</span><div class="barra"><span style="width:' + Math.round(danoTotal(def) / 20) + '%"></span></div>' +
+            '<span>Alcance</span><div class="barra"><span style="width:' + Math.round(def.alcance / (9 * TILE) * 100) + '%"></span></div>' +
+            '<span>Velocidad</span><div class="barra"><span style="width:' + limitar(vel, 15, 100) + '%"></span></div>' +
+          '</div>');
+        tarjeta.addEventListener('click', () => {
+          ajustes.tipoJugador = clave;
+          document.querySelectorAll('.tarjeta').forEach(t => t.classList.toggle('elegida', t.dataset.tipo === clave));
+        });
+        contenedorTarjetas.appendChild(tarjeta);
+
+        // Retrato en miniatura
+        const c = lienzo.getContext('2d');
+        c.setTransform(2, 0, 0, 2, 0, 0);
+        dibujarRetrato(c, def);
+      }
+    }
+
+    function danoTotal(def) {
+      const a = def.ataque;
+      return a.dano * (a.cantidad || 1);
+    }
+
+    // Dibuja un luchador en otro lienzo reutilizando la función de dibujo del juego
+    function dibujarRetrato(lienzoCtx, def) {
+      const falso = { x: 42, y: 44, r: 24, angulo: -0.5, def, invulnerable: 0, equipo: 0, esJugador: false, nombre: '', cristales: 0, cargaSuper: 0, vida: 1, vidaMax: 1 };
+      const anterior = ctx;
+      ctx = lienzoCtx;
+      try { dibujarLuchador(falso, true); } finally { ctx = anterior; }
+    }
+
+    function mostrarMenu() {
+      final.classList.add('oculta');
+      menu.classList.remove('oculta');
+      construirTarjetas();
+    }
+
+    function empezar() {
+      sonido.iniciar();
+      sonido.activo = document.getElementById('sonido').checked;
+      ajustes.nombre = document.getElementById('nombre').value.trim().slice(0, 12) || 'Tú';
+      ajustes.dificultad = document.getElementById('dificultad').value;
+      nuevaPartida();
+      menu.classList.add('oculta');
+      final.classList.add('oculta');
+      ultimoTiempo = performance.now();
+    }
+
+    function mostrarFinal() {
+      const p = partida, j = jugador();
+      const r = document.getElementById('resultado');
+      r.textContent = p.ganador === 0 ? '¡Victoria!' : p.ganador === 1 ? 'Derrota' : 'Empate';
+      r.className = p.ganador === 0 ? 'victoria' : p.ganador === 1 ? 'derrota' : 'empate';
+      document.getElementById('motivo').textContent = p.motivo;
+      document.getElementById('e-bajas').textContent = j.bajas;
+      document.getElementById('e-muertes').textContent = j.muertes;
+      document.getElementById('e-dano').textContent = Math.round(j.danoHecho).toLocaleString('es-ES');
+      document.getElementById('e-cristales').textContent = j.cristalesRecogidos;
+      final.classList.remove('oculta');
+    }
+
+    document.getElementById('jugar').addEventListener('click', empezar);
+    document.getElementById('otra').addEventListener('click', empezar);
+    document.getElementById('cambiar').addEventListener('click', mostrarMenu);
+    document.getElementById('nombre').addEventListener('keydown', e => e.stopPropagation());
+
+    mostrarMenu();
+  </script>
+</body>
+</html>
