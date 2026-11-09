@@ -200,7 +200,7 @@ function newWorker() {
   worker = null;
   if (engineFallback) { worker = engineFallback; return; }
   try {
-    const w = new Worker('./engine.worker.js', { type: 'module' });
+    const w = createEngineWorker();
     w.onmessage = onEngineMessage;
     w.onerror = () => { if (worker === w) { useFallbackEngine(); } };
     worker = w;
@@ -208,10 +208,22 @@ function newWorker() {
     useFallbackEngine();
   }
 }
+// En la versión de un solo fichero (Apps Script) el motor viene incrustado:
+// window.__ENGINE_SOURCE tiene su código y window.ChessEngine su API.
+function createEngineWorker() {
+  if (window.__ENGINE_SOURCE) {
+    const url = URL.createObjectURL(new Blob([window.__ENGINE_SOURCE], { type: 'text/javascript' }));
+    return new Worker(url);
+  }
+  return new Worker('./engine.worker.js', { type: 'module' });
+}
+function loadEngineModule() {
+  return window.ChessEngine ? Promise.resolve(window.ChessEngine) : import('./engine.worker.js');
+}
 function useFallbackEngine() {
   if (!engineFallback) {
     engineFallback = {
-      ready: import('./engine.worker.js'),
+      ready: loadEngineModule(),
       postMessage(msg) {
         this.ready.then((mod) => {
           // Presupuesto corto para no congelar la interfaz.
