@@ -83,7 +83,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: v
 .prating { color: var(--muted); font-weight: 400; }
 .flag { font-size: 14px; }
 .captured { height: 18px; display: flex; align-items: center; gap: 1px; font-size: 13px; color: var(--muted); }
-.captured .cap { width: 16px; height: 16px; background-size: contain; background-repeat: no-repeat; background-position: center; display: inline-block; margin-right: -5px; opacity: .9; }
+.captured .cap { width: 16px; height: 16px; display: inline-block; margin-right: -5px; opacity: .9; }
 .captured .cap.gap { margin-left: 6px; }
 .captured .diff { margin-left: 8px; font-size: 12px; }
 .clock {
@@ -111,9 +111,10 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: v
 .dot::after { content: ''; width: 30%; height: 30%; border-radius: 50%; background: rgba(0,0,0,.18); }
 .dot.capture::after { width: 100%; height: 100%; background: none; border: 7px solid rgba(0,0,0,.18); box-sizing: border-box; }
 .piece {
-  position: absolute; width: 12.5%; height: 12.5%; background-size: contain; background-repeat: no-repeat; background-position: center;
+  position: absolute; width: 12.5%; height: 12.5%;
   will-change: transform; z-index: 2; cursor: grab;
 }
+.piece svg, .cap svg { width: 100%; height: 100%; display: block; pointer-events: none; }
 .piece.anim { transition: transform .18s ease-out; }
 .piece.dragging { z-index: 5; cursor: grabbing; transition: none; transform-origin: center; }
 .piece.mini { position: static; width: 28px; height: 28px; display: inline-block; }

@@ -13,9 +13,8 @@ const app = await build({ entryPoints: ['app.js'], bundle: true, format: 'iife',
 const appSrc = app.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 
 const html = readFileSync('index.html', 'utf8');
-const css = readFileSync('style.css', 'utf8') + '\n' + readFileSync('vendor/pieces.css', 'utf8');
+const css = readFileSync('style.css', 'utf8');
 let single = html
-  .replace(/<link rel="stylesheet" href="vendor\/pieces.css">\s*/, '')
   .replace('<link rel="stylesheet" href="style.css">', `<style>\n${css}\n</style>`)
   .replace(/<link rel="canonical"[^>]*>\s*/, '')
   .replace('<script type="module" src="app.js"></script>',

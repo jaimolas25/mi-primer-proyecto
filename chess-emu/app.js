@@ -87,6 +87,9 @@ const dotsEl = $('dots');
 let orientation = 'w';
 const pieceEls = new Map(); // casilla -> elemento
 
+// Las piezas son SVG incrustados en la página (sprite <symbol>), sin imágenes externas ni data: URIs.
+const pieceSvg = (code) => `<svg viewBox="0 0 45 45"><use href="#p-${code}"/></svg>`;
+
 function sqToXY(sq) {
   const file = sq.charCodeAt(0) - 97;
   const rank = +sq[1] - 1;
@@ -139,6 +142,7 @@ function renderPosition(chess, animate = true) {
     } else {
       el = document.createElement('div');
       el.className = 'piece ' + code;
+      el.innerHTML = pieceSvg(code);
       el.dataset.code = code;
       el.classList.remove('anim');
       piecesEl.appendChild(el);
@@ -655,6 +659,7 @@ function askPromotion(from, to) {
   for (const p of ['q', 'r', 'b', 'n']) {
     const d = document.createElement('div');
     d.className = `piece ${color}${p}`;
+    d.innerHTML = pieceSvg(color + p);
     d.onclick = () => {
       promo.classList.add('hidden');
       pendingPromotion = null;
@@ -776,7 +781,7 @@ function renderCaptured() {
     for (const t of ['p', 'n', 'b', 'r', 'q']) {
       const n = Math.max(0, counts[color][t]);
       mat[color === 'w' ? 'b' : 'w'] += n * PIECE_VALUE[t];
-      for (let i = 0; i < n; i++) s += `<span class="cap ${color}${t}${i === 0 ? ' gap' : ''}"></span>`;
+      for (let i = 0; i < n; i++) s += `<span class="cap ${color}${t}${i === 0 ? ' gap' : ''}">${pieceSvg(color + t)}</span>`;
     }
     return s;
   };
