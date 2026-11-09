@@ -4,8 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Arena Brawl">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#1b1f3a">
+  <meta name="description" content="Arena Brawl: combate 3 contra 3 y supervivencia en vista cenital. Juego original para navegador y móvil, instalable como app.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="iconos/icono-192.png">
+  <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
   <title>Arena Brawl</title>
   <style>
     html, body {
@@ -19,13 +25,10 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
     }
 
-    #juego {
-      position: fixed;
-      inset: 0;
-      display: block;
-    }
+    #juego { position: fixed; inset: 0; display: block; }
 
     /* Pantallas de menú y de final de partida (encima del lienzo) */
     .pantalla {
@@ -38,13 +41,15 @@
       justify-content: flex-start;
       justify-content: safe center;
       padding: 16px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
       box-sizing: border-box;
       text-align: center;
       background: radial-gradient(circle at 50% 30%, #3b2f7a 0%, #1b1f3a 60%, #0d0f22 100%);
       overflow-y: auto;
     }
 
-    .oculta { display: none; }
+    .oculta { display: none !important; }
 
     h1 {
       margin: 0 0 4px;
@@ -55,213 +60,120 @@
       text-shadow: 0 4px 0 #b8860b, 0 8px 24px rgba(0, 0, 0, 0.6);
     }
 
-    .subtitulo {
-      margin: 0 0 20px;
-      color: #cfd3ff;
-      font-size: 1rem;
+    .subtitulo { margin: 0 0 14px; color: #cfd3ff; font-size: 0.95rem; }
+
+    .trofeos-total {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(0, 0, 0, 0.35); border-radius: 999px; padding: 6px 14px;
+      font-weight: bold; color: #ffd43b; margin-bottom: 14px;
     }
 
-    .tarjetas {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      max-width: 720px;
-      margin-bottom: 20px;
+    .seccion { font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #aab0e0; margin: 10px 0 8px; }
+
+    /* Modos de juego */
+    .modos { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+
+    .modo {
+      background: rgba(255, 255, 255, 0.08);
+      border: 3px solid transparent; border-radius: 16px;
+      padding: 12px 16px; width: 230px; cursor: pointer; text-align: left;
+      transition: transform 0.15s, border-color 0.15s, background 0.15s;
     }
+
+    .modo:hover { background: rgba(255, 255, 255, 0.14); }
+    .modo.elegido { border-color: #ffd43b; background: rgba(255, 212, 59, 0.16); transform: translateY(-3px); }
+    .modo b { display: block; font-size: 1.05rem; margin-bottom: 2px; }
+    .modo small { color: #cfd3ff; font-size: 0.76rem; line-height: 1.35; display: block; }
+    .modo .icono { font-size: 1.6rem; float: right; margin-left: 8px; }
+
+    /* Tarjetas de luchadores */
+    .tarjetas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 760px; margin-bottom: 16px; }
 
     .tarjeta {
+      position: relative;
       background: rgba(255, 255, 255, 0.08);
-      border: 3px solid transparent;
-      border-radius: 16px;
-      padding: 12px 10px;
-      width: 150px;
-      cursor: pointer;
+      border: 3px solid transparent; border-radius: 16px;
+      padding: 10px 8px; width: 136px; cursor: pointer;
       transition: transform 0.15s, border-color 0.15s, background 0.15s;
     }
 
     .tarjeta:hover { background: rgba(255, 255, 255, 0.14); }
+    .tarjeta.elegida { border-color: #ffd43b; background: rgba(255, 212, 59, 0.16); transform: translateY(-4px); }
+    .tarjeta canvas { width: 72px; height: 72px; display: block; margin: 0 auto 4px; }
+    .tarjeta b { display: block; font-size: 1.05rem; margin-bottom: 2px; }
+    .tarjeta small { display: block; color: #cfd3ff; font-size: 0.7rem; line-height: 1.35; }
+    .tarjeta .trofeos { position: absolute; top: 6px; right: 8px; font-size: 0.72rem; color: #ffd43b; font-weight: bold; }
 
-    .tarjeta.elegida {
-      border-color: #ffd43b;
-      background: rgba(255, 212, 59, 0.16);
-      transform: translateY(-4px);
-    }
-
-    .tarjeta canvas {
-      width: 84px;
-      height: 84px;
-      display: block;
-      margin: 0 auto 6px;
-    }
-
-    .tarjeta b {
-      display: block;
-      font-size: 1.15rem;
-      margin-bottom: 4px;
-    }
-
-    .tarjeta small {
-      display: block;
-      color: #cfd3ff;
-      font-size: 0.74rem;
-      line-height: 1.35;
-    }
-
-    .barras {
-      margin-top: 8px;
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 3px 6px;
-      font-size: 0.68rem;
-      color: #aab0e0;
-      text-align: left;
-      align-items: center;
-    }
-
-    .barra {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .barra span {
-      display: block;
-      height: 100%;
-      background: #ffd43b;
-      border-radius: 3px;
-    }
+    .barras { margin-top: 6px; display: grid; grid-template-columns: auto 1fr; gap: 3px 6px; font-size: 0.64rem; color: #aab0e0; text-align: left; align-items: center; }
+    .barra { height: 6px; background: rgba(255, 255, 255, 0.12); border-radius: 3px; overflow: hidden; }
+    .barra span { display: block; height: 100%; background: #ffd43b; border-radius: 3px; }
 
     .boton {
-      font: inherit;
-      font-size: 1.3rem;
-      font-weight: bold;
-      padding: 14px 40px;
-      border-radius: 14px;
-      border: 0;
-      cursor: pointer;
-      color: #3a2a00;
-      background: linear-gradient(#ffe066, #ffc107);
+      font: inherit; font-size: 1.3rem; font-weight: bold;
+      padding: 14px 40px; border-radius: 14px; border: 0; cursor: pointer;
+      color: #3a2a00; background: linear-gradient(#ffe066, #ffc107);
       box-shadow: 0 5px 0 #b8860b, 0 10px 20px rgba(0, 0, 0, 0.4);
-      transition: transform 0.1s, box-shadow 0.1s;
-      margin: 6px;
+      transition: transform 0.1s, box-shadow 0.1s; margin: 6px;
     }
 
-    .boton:active {
-      transform: translateY(4px);
-      box-shadow: 0 1px 0 #b8860b;
+    .boton:active { transform: translateY(4px); box-shadow: 0 1px 0 #b8860b; }
+    .boton.secundario { background: rgba(255, 255, 255, 0.12); color: #ffffff; box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4); font-size: 1rem; padding: 12px 24px; }
+    .boton.instalar { background: linear-gradient(#8ef05a, #4fb84a); color: #0d2a05; box-shadow: 0 5px 0 #2f7d2d, 0 10px 20px rgba(0,0,0,.4); font-size: 1rem; padding: 12px 24px; }
+
+    .ayuda { max-width: 600px; color: #aab0e0; font-size: 0.8rem; line-height: 1.5; margin: 10px 0 0; }
+    .ayuda kbd { background: rgba(255, 255, 255, 0.15); border-radius: 4px; padding: 1px 6px; font-family: inherit; color: #ffffff; }
+
+    .instalar-info {
+      max-width: 420px; background: rgba(0, 0, 0, 0.35); border-radius: 12px;
+      padding: 12px 16px; font-size: 0.85rem; color: #cfd3ff; line-height: 1.5; margin-top: 8px;
     }
 
-    .boton.secundario {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
-      font-size: 1rem;
-      padding: 12px 24px;
-    }
-
-    .ayuda {
-      max-width: 560px;
-      color: #aab0e0;
-      font-size: 0.82rem;
-      line-height: 1.5;
-      margin: 10px 0 0;
-    }
-
-    .ayuda kbd {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-family: inherit;
-      color: #ffffff;
-    }
-
-    #resultado {
-      font-size: clamp(2.4rem, 10vw, 5rem);
-      margin: 0 0 8px;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-    }
-
+    #resultado { font-size: clamp(2.4rem, 10vw, 5rem); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 3px; }
     #resultado.victoria { color: #ffd43b; text-shadow: 0 4px 0 #b8860b, 0 8px 24px rgba(0,0,0,.6); }
     #resultado.derrota { color: #ff6b6b; text-shadow: 0 4px 0 #8b1a1a, 0 8px 24px rgba(0,0,0,.6); }
     #resultado.empate { color: #cfd3ff; text-shadow: 0 4px 0 #555, 0 8px 24px rgba(0,0,0,.6); }
 
-    .estadisticas {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(120px, 1fr));
-      gap: 10px;
-      margin: 12px 0 20px;
-      max-width: 360px;
-      width: 100%;
-    }
+    .cambio-trofeos { font-size: 1.4rem; font-weight: bold; margin: 0 0 10px; }
+    .cambio-trofeos.positivo { color: #8ef05a; }
+    .cambio-trofeos.negativo { color: #ff6b6b; }
 
-    .estadistica {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 10px;
-    }
+    .estadisticas { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 10px; margin: 8px 0 18px; max-width: 360px; width: 100%; }
+    .estadistica { background: rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px; }
+    .estadistica b { display: block; font-size: 1.6rem; color: #ffd43b; }
+    .estadistica span { font-size: 0.78rem; color: #aab0e0; }
 
-    .estadistica b {
-      display: block;
-      font-size: 1.6rem;
-      color: #ffd43b;
-    }
-
-    .estadistica span {
-      font-size: 0.78rem;
-      color: #aab0e0;
-    }
-
-    .fila-opciones {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-      color: #cfd3ff;
-    }
-
+    .fila-opciones { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; margin-bottom: 8px; font-size: 0.9rem; color: #cfd3ff; }
     .fila-opciones label { margin: 0 6px; }
-
-    .fila-opciones select {
-      font: inherit;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 0;
-      background: rgba(255, 255, 255, 0.15);
-      color: #ffffff;
-    }
-
+    .fila-opciones select, .fila-opciones input[type=text] { font: inherit; padding: 6px 10px; border-radius: 8px; border: 0; background: rgba(255, 255, 255, 0.15); color: #ffffff; }
     .fila-opciones option { color: #000000; }
 
-    .enlace-volver {
-      position: fixed;
-      top: 10px;
-      left: 12px;
-      color: #aab0e0;
-      font-size: 0.8rem;
-      text-decoration: none;
-      z-index: 11;
+    .enlace-volver { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 12px; color: #aab0e0; font-size: 0.8rem; text-decoration: none; z-index: 11; }
+    .enlace-volver.standalone { display: none; }
+
+    @media (max-width: 600px) {
+      h1 { margin-top: 28px; }
+      .modo { width: 100%; max-width: 320px; }
     }
   </style>
 </head>
 <body>
   <canvas id="juego"></canvas>
 
-  <!-- Pantalla inicial: elegir luchador -->
+  <!-- Pantalla inicial: elegir modo y luchador -->
   <section id="menu" class="pantalla">
-    <a class="enlace-volver" href="index.html">← Volver al catálogo</a>
+    <a id="volver" class="enlace-volver" href="index.html">← Volver al catálogo</a>
     <h1>Arena Brawl</h1>
-    <p class="subtitulo">Combate 3 contra 3 · Modo <b>Caza de cristales</b>: reúne 10 cristales y aguanta 15 segundos</p>
+    <p class="subtitulo">Juego de arena en vista cenital · juega solo o contra bots</p>
+    <div class="trofeos-total">🏆 <span id="trofeos-total">0</span> trofeos</div>
 
+    <div class="seccion">Modo de juego</div>
+    <div id="modos" class="modos"></div>
+
+    <div class="seccion">Elige tu luchador</div>
     <div id="tarjetas" class="tarjetas"></div>
 
     <div class="fila-opciones">
-      <label>Tu nombre <input id="nombre" maxlength="12" value="Tú" style="font:inherit;padding:6px 10px;border-radius:8px;border:0;width:110px;background:rgba(255,255,255,.15);color:#fff"></label>
+      <label>Tu nombre <input id="nombre" type="text" maxlength="12" value="Tú" style="width:110px"></label>
       <label>Dificultad
         <select id="dificultad">
           <option value="facil">Fácil</option>
@@ -272,7 +184,11 @@
       <label><input id="sonido" type="checkbox" checked> Sonido</label>
     </div>
 
-    <button id="jugar" class="boton">¡A LUCHAR!</button>
+    <div>
+      <button id="jugar" class="boton">¡A LUCHAR!</button>
+      <button id="instalar" class="boton instalar oculta">📲 Instalar la app</button>
+    </div>
+    <div id="instalar-info" class="instalar-info oculta"></div>
 
     <p class="ayuda">
       <b>Ordenador:</b> mover con <kbd>WASD</kbd> o flechas · apuntar con el ratón · disparar con <kbd>clic</kbd> o <kbd>espacio</kbd> · súper con <kbd>clic derecho</kbd> o <kbd>E</kbd>.<br>
@@ -284,15 +200,16 @@
   <section id="final" class="pantalla oculta">
     <h2 id="resultado">Victoria</h2>
     <p id="motivo" class="subtitulo"></p>
+    <p id="cambio-trofeos" class="cambio-trofeos"></p>
     <div class="estadisticas">
       <div class="estadistica"><b id="e-bajas">0</b><span>Bajas</span></div>
       <div class="estadistica"><b id="e-muertes">0</b><span>Veces eliminado</span></div>
       <div class="estadistica"><b id="e-dano">0</b><span>Daño causado</span></div>
-      <div class="estadistica"><b id="e-cristales">0</b><span>Cristales recogidos</span></div>
+      <div class="estadistica"><b id="e-extra">0</b><span id="e-extra-texto">Cristales recogidos</span></div>
     </div>
     <div>
       <button id="otra" class="boton">Jugar otra vez</button>
-      <button id="cambiar" class="boton secundario">Cambiar luchador</button>
+      <button id="cambiar" class="boton secundario">Volver al menú</button>
     </div>
   </section>
 
@@ -306,10 +223,13 @@
     const CRISTALES_PARA_GANAR = 10; // cristales que debe tener un equipo
     const CUENTA_ATRAS = 15;         // segundos que hay que aguantar con 10 cristales
     const DURACION_MAXIMA = 240;     // si nadie gana antes, se decide por cristales
-    const TIEMPO_REAPARICION = 3;    // segundos muerto antes de volver
+    const TIEMPO_REAPARICION = 3;    // segundos muerto antes de volver (modo cristales)
     const ESPERA_CURACION = 3;       // segundos sin recibir daño para empezar a curarse
+    const JUGADORES_SUPERVIVENCIA = 8;
+    const DANO_GAS = 700;            // daño por segundo dentro del gas
+    const VIDA_CAJA = 3000;
 
-    // Mapa: '#' muro, '.' suelo, 'b' arbusto, 'M' mina de cristales, '1' / '2' puntos de aparición.
+    // Mapa de Caza de cristales: '#' muro, '.' suelo, 'b' arbusto, 'M' mina, '1'/'2' apariciones.
     // Se define la mitad de arriba y se refleja para que sea simétrico.
     const MITAD_MAPA = [
       "####################",
@@ -327,6 +247,29 @@
       "#..###.b..####....b#",
       "#..###....####..bb.#",
       "#.........MM....bb.#",
+    ];
+
+    // Mapa de Supervivencia (más grande): se define el cuarto superior izquierdo y se refleja
+    // en horizontal y en vertical. 'C' caja con cubo de poder, 'S' punto de aparición.
+    const CUADRANTE_SUPERVIVENCIA = [
+      "##############",
+      "#.............",
+      "#.S....bb..#..",
+      "#......bb..##.",
+      "#..C.......##.",
+      "#.....#.b..bb.",
+      "#.##..#.b...C.",
+      "#.##......##..",
+      "#.....C...bbb.",
+      "#.bb..#...bbb.",
+      "#.bb..###.....",
+      "#.....###..C..",
+      "#..S......#...",
+      "#.b......##...",
+      "#.C..##..##.b.",
+      "#..bb##.....b.",
+      "#..bb..C..##..",
+      "#.........bb..",
     ];
 
     // Luchadores originales del juego. Velocidad en píxeles por segundo, alcance en píxeles.
@@ -363,15 +306,63 @@
         rol: 'Lanzadora', descripcion: 'Bombas que pasan por encima de los muros. Súper: lluvia de tres bombas enormes.',
         forma: 'triangulo'
       },
+      nimbo: {
+        nombre: 'Nimbo', color: '#7fe3e0', colorOscuro: '#2a9c99',
+        vida: 3000, velocidad: 165, alcance: 6.5 * TILE, recarga: 1.3,
+        ataque: { tipo: 'simple', dano: 720, velocidad: 820, radio: 6 },
+        superImpactos: 6, super: { tipo: 'curacion', cantidad: 2000, radio: 3.2 * TILE },
+        rol: 'Sanador', descripcion: 'Rayos de agua a media distancia. Súper: nube que cura 2000 de vida a ti y a tus aliados cercanos.',
+        forma: 'hexagono'
+      },
+      sombra: {
+        nombre: 'Sombra', color: '#8c7bbf', colorOscuro: '#3d2f6b', colorBala: '#d9ccff',
+        vida: 2600, velocidad: 188, alcance: 3.6 * TILE, recarga: 0.9,
+        ataque: { tipo: 'rafaga', cantidad: 3, intervalo: 0.06, dano: 430, velocidad: 900, radio: 5 },
+        superImpactos: 9, super: { tipo: 'parpadeo', distancia: 5 * TILE, dano: 700, radio: 1.6 * TILE },
+        rol: 'Asesina', descripcion: 'Rapidísima, con dagas de corto alcance. Súper: se teletransporta y daña a quien tenga alrededor.',
+        forma: 'estrella'
+      },
+      tesla: {
+        nombre: 'Tesla', color: '#ffe14d', colorOscuro: '#b89a00',
+        vida: 3100, velocidad: 160, alcance: 6 * TILE, recarga: 1.4,
+        ataque: { tipo: 'cadena', dano: 650, velocidad: 820, radio: 6, saltos: 3, alcanceSalto: 3 * TILE },
+        superImpactos: 7, super: { tipo: 'tormenta', dano: 1200, radio: 4 * TILE, lentitud: 2 },
+        rol: 'Eléctrico', descripcion: 'Rayos que saltan de un enemigo a otro. Súper: tormenta que electrocuta y ralentiza a todos los cercanos.',
+        forma: 'pentagono'
+      },
+      bastion: {
+        nombre: 'Bastión', color: '#9aa5b1', colorOscuro: '#4d5661',
+        vida: 5200, velocidad: 140, alcance: 5.2 * TILE, recarga: 1.5,
+        ataque: { tipo: 'simple', dano: 880, velocidad: 600, radio: 9 },
+        superImpactos: 8, super: { tipo: 'escudo', duracion: 4, reduccion: 0.6 },
+        rol: 'Guardián', descripcion: 'Proyectiles pesados y la mayor vida del juego. Súper: escudo que reduce el daño un 60 % durante 4 segundos.',
+        forma: 'anillo'
+      },
     };
 
-    const NOMBRES_BOT = ['Nébula', 'Trueno', 'Chispa', 'Ferro', 'Cometa', 'Brisa', 'Volt', 'Ónix', 'Dardo', 'Mango'];
+    const MODOS = {
+      cristales: {
+        nombre: 'Caza de cristales', icono: '💎',
+        descripcion: '3 contra 3. Reúne 10 cristales de la mina central y aguanta 15 segundos sin perderlos.',
+        extraTexto: 'Cristales recogidos',
+      },
+      supervivencia: {
+        nombre: 'Supervivencia', icono: '☠️',
+        descripcion: 'Todos contra todos, 8 luchadores. Rompe cajas para conseguir cubos de poder y huye del gas. Gana el último en pie.',
+        extraTexto: 'Cubos de poder',
+      },
+    };
+
+    const NOMBRES_BOT = ['Nébula', 'Trueno', 'Chispa', 'Ferro', 'Cometa', 'Brisa', 'Volt', 'Ónix', 'Dardo', 'Mango', 'Zafiro', 'Lince'];
 
     const DIFICULTADES = {
       facil:   { punteria: 0.22, reaccion: 0.45, vista: 7 },
       normal:  { punteria: 0.12, reaccion: 0.25, vista: 9 },
       dificil: { punteria: 0.05, reaccion: 0.12, vista: 11 },
     };
+
+    // Trofeos que se ganan o pierden según el puesto en supervivencia (1.º a 8.º)
+    const TROFEOS_PUESTO = [10, 7, 5, 3, 1, -1, -3, -5];
 
     /* =========================================================
        UTILIDADES
@@ -381,6 +372,21 @@
     const distancia = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
     const anguloHacia = (ax, ay, bx, by) => Math.atan2(by - ay, bx - ax);
     const mezclar = lista => lista.map(v => [Math.random(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+
+    // Trofeos guardados en el dispositivo
+    const almacen = {
+      clave: 'arenaBrawl.trofeos',
+      leer() { try { return JSON.parse(localStorage.getItem(this.clave)) || {}; } catch (e) { return {}; } },
+      guardar(datos) { try { localStorage.setItem(this.clave, JSON.stringify(datos)); } catch (e) { /* sin almacenamiento */ } },
+      trofeos(tipo) { return this.leer()[tipo] || 0; },
+      total() { return Object.values(this.leer()).reduce((s, n) => s + n, 0); },
+      sumar(tipo, cantidad) {
+        const d = this.leer();
+        d[tipo] = Math.max(0, (d[tipo] || 0) + cantidad);
+        this.guardar(d);
+        return d[tipo];
+      },
+    };
 
     /* =========================================================
        SONIDO (sintetizado, sin archivos externos)
@@ -392,6 +398,7 @@
         if (this.ctx) return;
         const AC = window.AudioContext || window.webkitAudioContext;
         if (AC) this.ctx = new AC();
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
       },
       tono(frecuencia, duracion, tipo = 'square', volumen = 0.05, frecuenciaFinal = null) {
         if (!this.activo || !this.ctx) return;
@@ -410,6 +417,8 @@
       disparo() { this.tono(420, 0.09, 'square', 0.035, 140); },
       impacto() { this.tono(180, 0.08, 'sawtooth', 0.04, 90); },
       recoger() { this.tono(880, 0.12, 'sine', 0.05, 1320); },
+      cubo() { this.tono(660, 0.18, 'triangle', 0.06, 1760); },
+      caja() { this.tono(120, 0.15, 'square', 0.05, 60); },
       super() { this.tono(200, 0.35, 'sawtooth', 0.06, 900); },
       muerte() { this.tono(140, 0.4, 'triangle', 0.07, 40); },
       victoria() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tono(f, 0.3, 'square', 0.05), i * 130)); },
@@ -419,53 +428,62 @@
     /* =========================================================
        MAPA
        ========================================================= */
-    function construirMapa() {
-      const filas = MITAD_MAPA.slice();
-      for (let i = MITAD_MAPA.length - 1; i >= 0; i--) {
-        filas.push(MITAD_MAPA[i].replace(/1/g, '2'));
+    function construirMapa(modo) {
+      let filas;
+      if (modo === 'supervivencia') {
+        const mitad = CUADRANTE_SUPERVIVENCIA.map(f => f + f.split('').reverse().join(''));
+        filas = mitad.concat(mitad.slice().reverse());
+      } else {
+        filas = MITAD_MAPA.slice();
+        for (let i = MITAD_MAPA.length - 1; i >= 0; i--) filas.push(MITAD_MAPA[i].replace(/1/g, '2'));
       }
       const mapa = {
         filas: filas.length,
         columnas: filas[0].length,
         casillas: filas.map(f => f.split('')),
         apariciones: [[], []],
+        aparicionesSupervivencia: [],
         mina: { x: 0, y: 0 },
+        cajas: {},
       };
       mapa.ancho = mapa.columnas * TILE;
       mapa.alto = mapa.filas * TILE;
-      let minas = [];
+      const minas = [];
       for (let f = 0; f < mapa.filas; f++) {
         for (let c = 0; c < mapa.columnas; c++) {
           const ch = mapa.casillas[f][c];
-          const cx = c * TILE + TILE / 2;
-          const cy = f * TILE + TILE / 2;
+          const cx = c * TILE + TILE / 2, cy = f * TILE + TILE / 2;
           if (ch === '1') { mapa.apariciones[0].push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
           if (ch === '2') { mapa.apariciones[1].push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
           if (ch === 'M') { minas.push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
+          if (ch === 'S') { mapa.aparicionesSupervivencia.push({ x: cx, y: cy }); mapa.casillas[f][c] = '.'; }
+          if (ch === 'C') mapa.cajas[f + ',' + c] = VIDA_CAJA;
         }
       }
-      mapa.mina.x = minas.reduce((s, m) => s + m.x, 0) / minas.length;
-      mapa.mina.y = minas.reduce((s, m) => s + m.y, 0) / minas.length;
+      if (minas.length) {
+        mapa.mina.x = minas.reduce((s, m) => s + m.x, 0) / minas.length;
+        mapa.mina.y = minas.reduce((s, m) => s + m.y, 0) / minas.length;
+      } else { mapa.mina.x = mapa.ancho / 2; mapa.mina.y = mapa.alto / 2; }
       return mapa;
     }
 
     function casillaEn(mapa, x, y) {
-      const c = Math.floor(x / TILE);
-      const f = Math.floor(y / TILE);
+      const c = Math.floor(x / TILE), f = Math.floor(y / TILE);
       if (c < 0 || f < 0 || c >= mapa.columnas || f >= mapa.filas) return '#';
       return mapa.casillas[f][c];
     }
 
-    const esMuro = (mapa, x, y) => casillaEn(mapa, x, y) === '#';
+    const esSolida = ch => ch === '#' || ch === 'C';
+    const esMuro = (mapa, x, y) => esSolida(casillaEn(mapa, x, y));
     const esArbusto = (mapa, x, y) => casillaEn(mapa, x, y) === 'b';
 
-    // ¿Un círculo choca con algún muro?
+    // ¿Un círculo choca con algún muro o caja?
     function circuloChocaMuro(mapa, x, y, r) {
       const c0 = Math.floor((x - r) / TILE), c1 = Math.floor((x + r) / TILE);
       const f0 = Math.floor((y - r) / TILE), f1 = Math.floor((y + r) / TILE);
       for (let f = f0; f <= f1; f++) {
         for (let c = c0; c <= c1; c++) {
-          if (c < 0 || f < 0 || c >= mapa.columnas || f >= mapa.filas || mapa.casillas[f][c] === '#') {
+          if (c < 0 || f < 0 || c >= mapa.columnas || f >= mapa.filas || esSolida(mapa.casillas[f][c])) {
             const px = limitar(x, c * TILE, c * TILE + TILE);
             const py = limitar(y, f * TILE, f * TILE + TILE);
             if (distancia(x, y, px, py) < r) return true;
@@ -496,69 +514,101 @@
       return true;
     }
 
+    // Daña una caja del mapa; si se rompe, suelta un cubo de poder
+    function danarCaja(mapa, x, y, dano, atacante) {
+      const c = Math.floor(x / TILE), f = Math.floor(y / TILE);
+      const clave = f + ',' + c;
+      if (!(clave in mapa.cajas)) return false;
+      mapa.cajas[clave] -= dano;
+      particulas(c * TILE + TILE / 2, f * TILE + TILE / 2, '#c9a24a', 5, 90);
+      if (atacante && atacante.esJugador) sonido.caja();
+      if (mapa.cajas[clave] <= 0) {
+        delete mapa.cajas[clave];
+        mapa.casillas[f][c] = '.';
+        particulas(c * TILE + TILE / 2, f * TILE + TILE / 2, '#c9a24a', 18, 160);
+        partida.cubos.push({ x: c * TILE + TILE / 2, y: f * TILE + TILE / 2, fase: Math.random() * 6, aparicion: 0.4 });
+      }
+      return true;
+    }
+
     /* =========================================================
        ESTADO DE LA PARTIDA
        ========================================================= */
     let partida = null;
-    let ajustes = { tipoJugador: 'pixel', nombre: 'Tú', dificultad: 'normal' };
+    const ajustes = { modo: 'cristales', tipoJugador: 'pixel', nombre: 'Tú', dificultad: 'normal' };
 
-    function crearLuchador(tipo, equipo, nombre, esJugador, mapa, indice) {
+    function crearLuchador(tipo, equipo, nombre, esJugador, aparicion) {
       const def = LUCHADORES[tipo];
-      const aparicion = mapa.apariciones[equipo][indice % mapa.apariciones[equipo].length];
       return {
         tipo, def, equipo, nombre, esJugador,
         x: aparicion.x, y: aparicion.y, r: 20,
         aparicion,
         vida: def.vida, vidaMax: def.vida,
-        angulo: equipo === 0 ? Math.PI / 2 : -Math.PI / 2,
+        angulo: aparicion.y < 0 ? 0 : (aparicion.y < 720 ? Math.PI / 2 : -Math.PI / 2),
         municion: 3, recargando: 0,
         enfriamiento: 0,
         cargaSuper: 0,
-        cristales: 0,
+        cristales: 0, cubos: 0,
         muerto: false, reaparicion: 0, invulnerable: 2,
+        escudo: 0, lento: 0,
         ultimoDano: -99, ultimoDisparo: -99,
         colaDisparos: [],
         embestida: null,
+        puesto: 0,
         // inteligencia artificial
-        ia: { pensar: 0, dirX: 0, dirY: 0, evitar: 0, anguloEvitar: 0, atascado: 0, ultimaX: 0, ultimaY: 0, objetivo: null, deambular: null },
+        ia: { pensar: 0, dirX: 0, dirY: 0, evitar: 0, anguloEvitar: 0, atascado: 0, ultimaX: 0, ultimaY: 0, deambular: null },
         // estadísticas
         bajas: 0, muertes: 0, danoHecho: 0, cristalesRecogidos: 0,
       };
     }
 
     function nuevaPartida() {
-      const mapa = construirMapa();
+      const modo = ajustes.modo;
+      const mapa = construirMapa(modo);
       const tipos = Object.keys(LUCHADORES);
       const nombres = mezclar(NOMBRES_BOT);
       const luchadores = [];
 
-      // Equipo 0 (azul): jugador + 2 aliados
-      luchadores.push(crearLuchador(ajustes.tipoJugador, 0, ajustes.nombre || 'Tú', true, mapa, 1));
-      const aliados = mezclar(tipos.filter(t => t !== ajustes.tipoJugador)).slice(0, 2);
-      aliados.forEach((t, i) => luchadores.push(crearLuchador(t, 0, nombres[i], false, mapa, i === 0 ? 0 : 2)));
-
-      // Equipo 1 (rojo): 3 rivales con tipos variados
-      mezclar(tipos).slice(0, 3).forEach((t, i) => luchadores.push(crearLuchador(t, 1, nombres[2 + i], false, mapa, i)));
+      if (modo === 'cristales') {
+        // Equipo 0 (azul): jugador + 2 aliados. Equipo 1 (rojo): 3 rivales.
+        luchadores.push(crearLuchador(ajustes.tipoJugador, 0, ajustes.nombre || 'Tú', true, mapa.apariciones[0][1]));
+        const aliados = mezclar(tipos.filter(t => t !== ajustes.tipoJugador)).slice(0, 2);
+        aliados.forEach((t, i) => luchadores.push(crearLuchador(t, 0, nombres[i], false, mapa.apariciones[0][i === 0 ? 0 : 2])));
+        mezclar(tipos).slice(0, 3).forEach((t, i) => luchadores.push(crearLuchador(t, 1, nombres[2 + i], false, mapa.apariciones[1][i])));
+      } else {
+        // Todos contra todos: cada luchador es su propio equipo
+        const puntos = mezclar(mapa.aparicionesSupervivencia);
+        luchadores.push(crearLuchador(ajustes.tipoJugador, 0, ajustes.nombre || 'Tú', true, puntos[0]));
+        const rivales = mezclar(tipos.concat(mezclar(tipos))).slice(0, JUGADORES_SUPERVIVENCIA - 1);
+        rivales.forEach((t, i) => luchadores.push(crearLuchador(t, i + 1, nombres[i], false, puntos[i + 1])));
+        luchadores.forEach(l => { l.invulnerable = 3; });
+      }
 
       partida = {
-        mapa, luchadores,
-        balas: [], cristales: [], particulas: [], textos: [], avisos: [],
+        modo, mapa, luchadores,
+        balas: [], cristales: [], cubos: [], particulas: [], textos: [], avisos: [], rayos: [],
         tiempo: 0,
         temporizadorCristal: 2.5,
         cuentaAtras: { equipo: -1, restante: 0 },
-        ganador: null, motivo: '',
+        gas: { anillo: 0, proximo: 30, aviso: false },
+        eliminados: 0,
+        ganador: null, motivo: '', puestoJugador: 0,
         temblor: 0,
         dificultad: DIFICULTADES[ajustes.dificultad],
         camara: { x: 0, y: 0 },
         terminada: false,
+        cambioTrofeos: 0,
       };
-      aviso('¡Reúne ' + CRISTALES_PARA_GANAR + ' cristales y aguanta 15 s!', 3);
+      if (modo === 'cristales') aviso('¡Reúne ' + CRISTALES_PARA_GANAR + ' cristales y aguanta 15 s!', 3);
+      else aviso('¡Rompe cajas, coge cubos y sé el último en pie!', 3);
       return partida;
     }
 
     const jugador = () => partida.luchadores[0];
     const enemigosDe = l => partida.luchadores.filter(o => o.equipo !== l.equipo && !o.muerto);
+    const aliadosDe = l => partida.luchadores.filter(o => o.equipo === l.equipo && !o.muerto);
     const cristalesEquipo = equipo => partida.luchadores.filter(l => l.equipo === equipo && !l.muerto).reduce((s, l) => s + l.cristales, 0);
+    const vivos = () => partida.luchadores.filter(l => !l.muerto).length;
 
     function aviso(texto, duracion = 2, color = '#ffffff') {
       partida.avisos.push({ texto, restante: duracion, total: duracion, color });
@@ -576,6 +626,14 @@
       }
     }
 
+    // ¿Está un punto dentro del gas del modo supervivencia?
+    function enGas(x, y) {
+      if (partida.modo !== 'supervivencia') return false;
+      const a = partida.gas.anillo;
+      const c = x / TILE, f = y / TILE;
+      return c < a || f < a || c > partida.mapa.columnas - a || f > partida.mapa.filas - a;
+    }
+
     /* =========================================================
        COMBATE
        ========================================================= */
@@ -589,9 +647,11 @@
         r: opciones.radio,
         recorrido: 0,
         alcance: opciones.alcance,
-        color: duenio.def.color,
+        color: duenio.def.colorBala || duenio.def.color,
         perforante: !!opciones.perforante,
         lanzamiento: !!opciones.lanzamiento,
+        cadena: opciones.cadena || 0,
+        alcanceSalto: opciones.alcanceSalto || 0,
         area: opciones.area || 0,
         esSuper: !!opciones.esSuper,
         golpeados: new Set(),
@@ -621,10 +681,10 @@
         }
       } else if (at.tipo === 'simple') {
         crearBala(l, ox, oy, angulo, base);
+      } else if (at.tipo === 'cadena') {
+        crearBala(l, ox, oy, angulo, { ...base, cadena: at.saltos, alcanceSalto: at.alcanceSalto });
       } else if (at.tipo === 'rafaga') {
-        for (let i = 0; i < at.cantidad; i++) {
-          l.colaDisparos.push({ en: i * at.intervalo, angulo, opciones: base });
-        }
+        for (let i = 0; i < at.cantidad; i++) l.colaDisparos.push({ en: i * at.intervalo, angulo, opciones: base });
       } else if (at.tipo === 'lanzamiento') {
         const alcance = limitar(distanciaObjetivo || l.def.alcance, TILE * 1.5, l.def.alcance);
         crearBala(l, l.x, l.y, angulo, { ...base, alcance, lanzamiento: true, area: at.area });
@@ -657,19 +717,81 @@
           const a = angulo + azar(-0.12, 0.12);
           crearBala(l, l.x, l.y, a, { velocidad: sp.velocidad, dano: sp.dano, radio: sp.radio, alcance: alcance * azar(0.85, 1.1), lanzamiento: true, area: sp.area, esSuper: true });
         }
+      } else if (sp.tipo === 'curacion') {
+        for (const a of aliadosDe(l)) {
+          if (distancia(l.x, l.y, a.x, a.y) > sp.radio) continue;
+          const antes = a.vida;
+          a.vida = Math.min(a.vidaMax, a.vida + sp.cantidad);
+          if (a.vida > antes) textoFlotante(a.x, a.y - 34, '+' + Math.round(a.vida - antes), '#8ef05a');
+          particulas(a.x, a.y, '#7fe3e0', 10, 80);
+        }
+        partida.particulas.push({ x: l.x, y: l.y, vx: 0, vy: 0, vida: 0.45, color: '#7fe3e0', r: sp.radio, anillo: true });
+      } else if (sp.tipo === 'parpadeo') {
+        // Avanza por la línea hasta la distancia máxima o hasta topar con un muro
+        let destinoX = l.x, destinoY = l.y;
+        const pasos = Math.ceil(sp.distancia / 6);
+        for (let i = 1; i <= pasos; i++) {
+          const px = l.x + Math.cos(angulo) * i * 6, py = l.y + Math.sin(angulo) * i * 6;
+          if (circuloChocaMuro(partida.mapa, px, py, l.r)) break;
+          destinoX = px; destinoY = py;
+        }
+        particulas(l.x, l.y, '#d9ccff', 14, 120);
+        l.x = destinoX; l.y = destinoY;
+        l.invulnerable = Math.max(l.invulnerable, 0.3);
+        particulas(l.x, l.y, '#d9ccff', 14, 120);
+        for (const o of enemigosDe(l)) if (distancia(l.x, l.y, o.x, o.y) < sp.radio) herir(o, sp.dano, l);
+        partida.particulas.push({ x: l.x, y: l.y, vx: 0, vy: 0, vida: 0.3, color: '#d9ccff', r: sp.radio, anillo: true });
+      } else if (sp.tipo === 'tormenta') {
+        for (const o of enemigosDe(l)) {
+          if (distancia(l.x, l.y, o.x, o.y) > sp.radio) continue;
+          herir(o, sp.dano, l);
+          o.lento = Math.max(o.lento, sp.lentitud);
+          partida.rayos.push({ puntos: [[l.x, l.y], [o.x, o.y]], vida: 0.25 });
+        }
+        for (const clave of Object.keys(partida.mapa.cajas)) {
+          const [f, c] = clave.split(',').map(Number);
+          if (distancia(l.x, l.y, c * TILE + TILE / 2, f * TILE + TILE / 2) <= sp.radio) danarCaja(partida.mapa, c * TILE + TILE / 2, f * TILE + TILE / 2, sp.dano, l);
+        }
+        partida.particulas.push({ x: l.x, y: l.y, vx: 0, vy: 0, vida: 0.4, color: '#ffe14d', r: sp.radio, anillo: true });
+      } else if (sp.tipo === 'escudo') {
+        l.escudo = sp.duracion;
+        textoFlotante(l.x, l.y - 40, '¡Escudo!', '#9aa5b1');
       }
       return true;
     }
 
+    // Rayo en cadena: salta del enemigo golpeado al siguiente más cercano
+    function saltarRayo(bala, desde) {
+      let siguiente = null, dm = Infinity;
+      for (const o of partida.luchadores) {
+        if (o.muerto || o.equipo === bala.equipo || bala.golpeados.has(o)) continue;
+        const d = distancia(desde.x, desde.y, o.x, o.y);
+        if (d < bala.alcanceSalto && d < dm) { dm = d; siguiente = o; }
+      }
+      if (!siguiente) return;
+      bala.golpeados.add(siguiente);
+      partida.rayos.push({ puntos: [[desde.x, desde.y], [siguiente.x, siguiente.y]], vida: 0.2 });
+      herir(siguiente, bala.dano * 0.7, bala.duenio);
+      if (bala.cadena > 1) { bala.cadena -= 1; saltarRayo(bala, siguiente); }
+    }
+
     function herir(objetivo, dano, atacante) {
       if (objetivo.muerto || objetivo.invulnerable > 0) return;
+      if (atacante) dano *= 1 + 0.08 * (atacante.cubos || 0);
+      if (objetivo.escudo > 0) dano *= 1 - objetivo.def.super.reduccion;
+      // En supervivencia los bots se hacen la mitad de daño entre ellos: así la partida dura más y el jugador decide los duelos
+      if (partida.modo === 'supervivencia' && atacante && !atacante.esJugador && !objetivo.esJugador) dano *= 0.5;
+      dano = Math.round(dano);
       objetivo.vida -= dano;
       objetivo.ultimoDano = partida.tiempo;
-      atacante.danoHecho += dano;
-      atacante.cargaSuper = Math.min(100, atacante.cargaSuper + 100 / atacante.def.superImpactos);
-      textoFlotante(objetivo.x + azar(-10, 10), objetivo.y - 30, String(Math.round(dano)), objetivo.equipo === 0 ? '#ff6b6b' : '#ffffff');
+      if (atacante) {
+        atacante.danoHecho += dano;
+        atacante.cargaSuper = Math.min(100, atacante.cargaSuper + 100 / atacante.def.superImpactos);
+      }
+      const esAliado = objetivo.equipo === jugador().equipo;
+      textoFlotante(objetivo.x + azar(-10, 10), objetivo.y - 30, String(dano), esAliado ? '#ff6b6b' : '#ffffff');
       particulas(objetivo.x, objetivo.y, objetivo.def.color, 5, 90);
-      if (objetivo.esJugador || atacante.esJugador) sonido.impacto();
+      if (objetivo.esJugador || (atacante && atacante.esJugador)) sonido.impacto();
       if (objetivo.esJugador) partida.temblor = Math.max(partida.temblor, 6);
       if (objetivo.vida <= 0) morir(objetivo, atacante);
     }
@@ -677,28 +799,39 @@
     function morir(l, asesino) {
       l.vida = 0;
       l.muerto = true;
-      l.reaparicion = TIEMPO_REAPARICION;
       l.muertes += 1;
       l.embestida = null;
       l.colaDisparos = [];
-      asesino.bajas += 1;
+      l.escudo = 0;
+      if (asesino && asesino !== l) asesino.bajas += 1;
       particulas(l.x, l.y, l.def.color, 26, 200);
       sonido.muerte();
 
-      // Suelta todos sus cristales esparcidos alrededor
-      for (let i = 0; i < l.cristales; i++) {
-        let cx = l.x, cy = l.y;
-        for (let intento = 0; intento < 8; intento++) {
-          const a = Math.random() * Math.PI * 2, d = azar(20, 70);
-          const px = l.x + Math.cos(a) * d, py = l.y + Math.sin(a) * d;
-          if (!circuloChocaMuro(partida.mapa, px, py, 10)) { cx = px; cy = py; break; }
+      // Suelta lo que llevaba, esparcido alrededor
+      const soltar = (lista, cantidad) => {
+        for (let i = 0; i < cantidad; i++) {
+          let cx = l.x, cy = l.y;
+          for (let intento = 0; intento < 8; intento++) {
+            const a = Math.random() * Math.PI * 2, d = azar(20, 70);
+            const px = l.x + Math.cos(a) * d, py = l.y + Math.sin(a) * d;
+            if (!circuloChocaMuro(partida.mapa, px, py, 10)) { cx = px; cy = py; break; }
+          }
+          lista.push({ x: cx, y: cy, fase: Math.random() * 6, aparicion: 0.5 });
         }
-        partida.cristales.push({ x: cx, y: cy, fase: Math.random() * 6, aparicion: 0.5 });
-      }
-      l.cristales = 0;
+      };
+      soltar(partida.cristales, l.cristales); l.cristales = 0;
 
-      if (asesino.esJugador) aviso('¡Has eliminado a ' + l.nombre + '!', 1.6, '#ffd43b');
-      else if (l.esJugador) aviso(asesino.nombre + ' te ha eliminado', 1.6, '#ff6b6b');
+      if (partida.modo === 'supervivencia') {
+        soltar(partida.cubos, l.cubos); l.cubos = 0;
+        partida.eliminados += 1;
+        l.puesto = JUGADORES_SUPERVIVENCIA - partida.eliminados + 1;
+        l.reaparicion = Infinity;
+        if (!l.esJugador) aviso(l.nombre + ' ha caído · quedan ' + vivos(), 1.6, asesino && asesino.esJugador ? '#ffd43b' : '#cfd3ff');
+      } else {
+        l.reaparicion = TIEMPO_REAPARICION;
+        if (asesino && asesino.esJugador) aviso('¡Has eliminado a ' + l.nombre + '!', 1.6, '#ffd43b');
+        else if (l.esJugador) aviso((asesino ? asesino.nombre : 'El gas') + ' te ha eliminado', 1.6, '#ff6b6b');
+      }
     }
 
     function reaparecer(l) {
@@ -708,8 +841,16 @@
       l.y = l.aparicion.y;
       l.municion = 3;
       l.invulnerable = 2;
-      l.ia.objetivo = null;
+      l.lento = 0;
       particulas(l.x, l.y, '#ffffff', 14, 120);
+    }
+
+    function recogerCubo(l) {
+      l.cubos += 1;
+      l.vidaMax = l.def.vida + 300 * l.cubos;
+      l.vida = Math.min(l.vidaMax, l.vida + 300);
+      textoFlotante(l.x, l.y - 34, '+1 cubo', '#8ef05a');
+      if (l.esJugador) sonido.cubo();
     }
 
     /* =========================================================
@@ -719,32 +860,74 @@
       const ia = l.ia;
       const dif = partida.dificultad;
       const mapa = partida.mapa;
+      const supervivencia = partida.modo === 'supervivencia';
       ia.pensar -= dt;
       if (ia.pensar > 0) return;
       ia.pensar = azar(0.12, 0.22);
 
       const enemigos = enemigosDe(l);
-      const distVista = dif.vista * TILE;
+      const distVista = dif.vista * TILE * (supervivencia ? 0.6 : 1);
+      // Tregua inicial en supervivencia: los bots buscan cajas en vez de pelear, salvo que les ataquen o tengan a alguien encima
+      const tregua = supervivencia && partida.tiempo < 25 && partida.tiempo - l.ultimoDano > 3;
 
       // Enemigo visible más cercano (los arbustos ocultan salvo de cerca o si acaba de disparar)
       let objetivo = null, distObjetivo = Infinity;
       for (const e of enemigos) {
         const d = distancia(l.x, l.y, e.x, e.y);
         const oculto = esArbusto(mapa, e.x, e.y) && d > 2.5 * TILE && partida.tiempo - e.ultimoDisparo > 1;
+        if (tregua) continue;
         if (d < distVista && d < distObjetivo && !oculto) { objetivo = e; distObjetivo = d; }
       }
 
-      const misCristales = cristalesEquipo(l.equipo);
-      const susCristales = cristalesEquipo(1 - l.equipo);
-      const vidaBaja = l.vida < l.vidaMax * 0.32;
+      const vidaBaja = l.vida < l.vidaMax * (supervivencia ? 0.5 : 0.32);
       const cargaLlena = l.cargaSuper >= 100;
+      const centro = { x: mapa.ancho / 2, y: mapa.alto / 2 };
 
       // Decidir hacia dónde ir
       let meta = null, modo = 'avanzar';
-      if (vidaBaja && (objetivo || partida.tiempo - l.ultimoDano < 2)) {
-        meta = l.aparicion; modo = 'huir';
-      } else if (misCristales >= CRISTALES_PARA_GANAR && l.cristales > 0) {
+      if (supervivencia && enGas(l.x, l.y)) {
+        meta = centro; modo = 'gas';
+      } else if (vidaBaja && (objetivo || partida.tiempo - l.ultimoDano < 2)) {
+        if (supervivencia) {
+          // Buscar el arbusto más cercano fuera del gas
+          let mejor = null, dm = Infinity;
+          for (let f = 0; f < mapa.filas; f += 1) for (let c = 0; c < mapa.columnas; c += 1) {
+            if (mapa.casillas[f][c] !== 'b') continue;
+            const bx = c * TILE + TILE / 2, by = f * TILE + TILE / 2;
+            if (enGas(bx, by)) continue;
+            const d = distancia(l.x, l.y, bx, by) + (objetivo && distancia(objetivo.x, objetivo.y, bx, by) < 3 * TILE ? 5 * TILE : 0);
+            if (d < dm) { dm = d; mejor = { x: bx, y: by }; }
+          }
+          meta = mejor || centro;
+        } else meta = l.aparicion;
+        modo = 'huir';
+      } else if (!supervivencia && cristalesEquipo(l.equipo) >= CRISTALES_PARA_GANAR && l.cristales > 0) {
         meta = { x: (l.aparicion.x + mapa.mina.x) / 2, y: (l.aparicion.y * 2 + mapa.mina.y) / 3 }; modo = 'defender';
+      } else if (supervivencia) {
+        // Cubos sueltos, luego cajas, luego deambular hacia el centro
+        let mejor = null, dm = Infinity;
+        for (const c of partida.cubos) {
+          const d = distancia(l.x, l.y, c.x, c.y);
+          if (!enGas(c.x, c.y) && d < dm) { dm = d; mejor = c; }
+        }
+        if (mejor && dm < 8 * TILE) meta = mejor;
+        else {
+          let caja = null; dm = Infinity;
+          for (const clave of Object.keys(mapa.cajas)) {
+            const [f, c] = clave.split(',').map(Number);
+            const bx = c * TILE + TILE / 2, by = f * TILE + TILE / 2;
+            const d = distancia(l.x, l.y, bx, by);
+            if (!enGas(bx, by) && d < dm) { dm = d; caja = { x: bx, y: by, esCaja: true }; }
+          }
+          if (caja && dm < 10 * TILE) { meta = caja; modo = 'caja'; }
+          else {
+            if (!ia.deambular || distancia(l.x, l.y, ia.deambular.x, ia.deambular.y) < TILE || enGas(ia.deambular.x, ia.deambular.y)) {
+              const margen = (partida.gas.anillo + 2) * TILE;
+              ia.deambular = { x: azar(margen, mapa.ancho - margen), y: azar(margen, mapa.alto - margen) };
+            }
+            meta = ia.deambular;
+          }
+        }
       } else {
         // Cristal más cercano o la mina
         let mejor = null, dm = Infinity;
@@ -759,10 +942,18 @@
           }
           meta = ia.deambular;
         }
-        // Si el rival está a punto de ganar, prioriza cazar enemigos con cristales
-        if (susCristales >= CRISTALES_PARA_GANAR - 2) {
+        // Si el rival está a punto de ganar, prioriza cazar a sus portadores
+        if (cristalesEquipo(1 - l.equipo) >= CRISTALES_PARA_GANAR - 2) {
           const portador = enemigos.filter(e => e.cristales > 0).sort((a, b) => distancia(l.x, l.y, a.x, a.y) - distancia(l.x, l.y, b.x, b.y))[0];
           if (portador) { objetivo = portador; distObjetivo = distancia(l.x, l.y, portador.x, portador.y); meta = portador; modo = 'cazar'; }
+        }
+      }
+
+      // Romper la caja a la que se dirige
+      if (modo === 'caja' && meta && distancia(l.x, l.y, meta.x, meta.y) < l.def.alcance * 0.8 && partida.tiempo - l.ultimoDisparo > dif.reaccion && !objetivo) {
+        const a = anguloHacia(l.x, l.y, meta.x, meta.y);
+        if (l.def.ataque.tipo === 'lanzamiento' || hayVision(mapa, l.x, l.y, meta.x - Math.cos(a) * TILE * 0.6, meta.y - Math.sin(a) * TILE * 0.6)) {
+          disparar(l, a, distancia(l.x, l.y, meta.x, meta.y));
         }
       }
 
@@ -771,35 +962,41 @@
         const alcance = l.def.alcance;
         const esLanzadora = l.def.ataque.tipo === 'lanzamiento';
         const vision = esLanzadora || hayVision(mapa, l.x, l.y, objetivo.x, objetivo.y);
+        const esCuerpoACuerpo = l.def.ataque.tipo === 'escopeta' || l.tipo === 'sombra';
 
-        if (modo !== 'huir' && modo !== 'defender') {
-          if (distObjetivo > alcance * 0.85 || !vision) meta = objetivo;
-          else if (distObjetivo < alcance * 0.45 && l.def.ataque.tipo !== 'escopeta') {
-            // Mantener distancia: alejarse en perpendicular
+        // En supervivencia solo persigue si va ganando el duelo (más vida y cubos); si no, mantiene la distancia
+        const vaGanando = !supervivencia || (l.vida / l.vidaMax + l.cubos * 0.05) >= (objetivo.vida / objetivo.vidaMax + objetivo.cubos * 0.05) - 0.1;
+        if (modo !== 'huir' && modo !== 'defender' && modo !== 'gas') {
+          if ((distObjetivo > alcance * 0.85 || !vision) && vaGanando) meta = objetivo;
+          else if (!vaGanando && distObjetivo < alcance) {
+            const a = anguloHacia(objetivo.x, objetivo.y, l.x, l.y);
+            meta = { x: l.x + Math.cos(a) * 3 * TILE, y: l.y + Math.sin(a) * 3 * TILE };
+          }
+          else if (distObjetivo < alcance * 0.45 && !esCuerpoACuerpo) {
             const a = anguloHacia(objetivo.x, objetivo.y, l.x, l.y) + (Math.sin(partida.tiempo * 0.7 + l.x) > 0 ? 0.9 : -0.9);
             meta = { x: l.x + Math.cos(a) * 3 * TILE, y: l.y + Math.sin(a) * 3 * TILE };
           } else {
-            // Moverse lateralmente para esquivar
             const a = anguloHacia(l.x, l.y, objetivo.x, objetivo.y) + (Math.sin(partida.tiempo * 1.3 + l.y) > 0 ? Math.PI / 2 : -Math.PI / 2);
             meta = { x: l.x + Math.cos(a) * 2 * TILE, y: l.y + Math.sin(a) * 2 * TILE };
           }
         }
 
-        if (vision && distObjetivo <= alcance * 1.02 && partida.tiempo - l.ultimoDisparo > dif.reaccion) {
+        if (vision && distObjetivo <= alcance * 1.02 && partida.tiempo - l.ultimoDisparo > dif.reaccion * (supervivencia ? 1.8 : 1)) {
           // Apuntar con anticipación según la velocidad del enemigo
           const velBala = l.def.ataque.velocidad;
           const t = distObjetivo / velBala;
-          const px = objetivo.x + (objetivo.ia.dirX || 0) * objetivo.def.velocidad * t * (objetivo.esJugador ? 0.7 : 1);
-          const py = objetivo.y + (objetivo.ia.dirY || 0) * objetivo.def.velocidad * t * (objetivo.esJugador ? 0.7 : 1);
-          const a = anguloHacia(l.x, l.y, px, py) + azar(-dif.punteria, dif.punteria);
+          const factor = objetivo.esJugador ? 0.7 : 1;
+          const px = objetivo.x + (objetivo.ia.dirX || 0) * objetivo.def.velocidad * t * factor;
+          const py = objetivo.y + (objetivo.ia.dirY || 0) * objetivo.def.velocidad * t * factor;
+          const punteria = dif.punteria * (supervivencia ? 1.5 : 1);
+          const a = anguloHacia(l.x, l.y, px, py) + azar(-punteria, punteria);
           // Los lanzamientos también fallan en distancia, no solo en ángulo
           const distDisparo = distancia(l.x, l.y, px, py) * (esLanzadora ? 1 + azar(-dif.punteria * 2.5, dif.punteria * 2.5) : 1);
-          if (cargaLlena && distObjetivo < alcance * 0.9 && (l.def.super.tipo !== 'embestida' || distObjetivo < 4 * TILE)) {
-            usarSuper(l, a, distDisparo);
-          } else {
-            disparar(l, a, distDisparo);
-          }
+          if (cargaLlena && quiereUsarSuper(l, objetivo, distObjetivo)) usarSuper(l, a, distDisparo);
+          else disparar(l, a, distDisparo);
         }
+      } else if (cargaLlena && l.def.super.tipo === 'curacion' && l.vida < l.vidaMax * 0.5) {
+        usarSuper(l, l.angulo, 0);
       }
 
       // Dirección de movimiento hacia la meta, esquivando muros
@@ -807,6 +1004,7 @@
       if (meta) {
         let a = anguloHacia(l.x, l.y, meta.x, meta.y);
         if (distancia(l.x, l.y, meta.x, meta.y) < 6 && modo !== 'avanzar') return;
+        if (meta.esCaja && distancia(l.x, l.y, meta.x, meta.y) < TILE * 1.6) return;
         // Detectar atasco
         if (distancia(l.x, l.y, ia.ultimaX, ia.ultimaY) < 2) ia.atascado += 1; else ia.atascado = 0;
         ia.ultimaX = l.x; ia.ultimaY = l.y;
@@ -831,6 +1029,17 @@
       }
     }
 
+    // ¿Le conviene al bot gastar la súper ahora contra este objetivo?
+    function quiereUsarSuper(l, objetivo, dist) {
+      const tipo = l.def.super.tipo;
+      const alcance = l.def.alcance;
+      if (tipo === 'embestida' || tipo === 'parpadeo') return dist < 4.5 * TILE;
+      if (tipo === 'tormenta') return dist < l.def.super.radio * 0.9;
+      if (tipo === 'curacion') return l.vida < l.vidaMax * 0.6 || aliadosDe(l).some(a => a !== l && a.vida < a.vidaMax * 0.5 && distancia(l.x, l.y, a.x, a.y) < l.def.super.radio);
+      if (tipo === 'escudo') return l.vida < l.vidaMax * 0.7 && dist < alcance;
+      return dist < alcance * 0.9;
+    }
+
     /* =========================================================
        ACTUALIZACIÓN DE LA PARTIDA
        ========================================================= */
@@ -838,17 +1047,28 @@
       const p = partida;
       if (p.terminada) return;
       const mapa = p.mapa;
+      const supervivencia = p.modo === 'supervivencia';
       p.tiempo += dt;
       p.temblor = Math.max(0, p.temblor - dt * 30);
 
-      // Aparición de cristales en la mina
-      const totalCristales = p.cristales.length + p.luchadores.reduce((s, l) => s + l.cristales, 0);
-      p.temporizadorCristal -= dt;
-      if (p.temporizadorCristal <= 0) {
-        p.temporizadorCristal = 5;
-        if (totalCristales < 24) {
-          p.cristales.push({ x: mapa.mina.x + azar(-30, 30), y: mapa.mina.y + azar(-30, 30), fase: Math.random() * 6, aparicion: 0.5 });
-          particulas(mapa.mina.x, mapa.mina.y, '#c77dff', 8, 60);
+      if (!supervivencia) {
+        // Aparición de cristales en la mina
+        const totalCristales = p.cristales.length + p.luchadores.reduce((s, l) => s + l.cristales, 0);
+        p.temporizadorCristal -= dt;
+        if (p.temporizadorCristal <= 0) {
+          p.temporizadorCristal = 5;
+          if (totalCristales < 24) {
+            p.cristales.push({ x: mapa.mina.x + azar(-30, 30), y: mapa.mina.y + azar(-30, 30), fase: Math.random() * 6, aparicion: 0.5 });
+            particulas(mapa.mina.x, mapa.mina.y, '#c77dff', 8, 60);
+          }
+        }
+      } else {
+        // El gas se cierra un anillo cada cierto tiempo
+        if (p.tiempo > p.gas.proximo - 5 && !p.gas.aviso) { p.gas.aviso = true; aviso('¡El gas avanza en 5 segundos!', 2, '#8ef05a'); }
+        if (p.tiempo > p.gas.proximo) {
+          p.gas.anillo = Math.min(p.gas.anillo + 1, Math.floor(Math.min(mapa.columnas, mapa.filas) / 2) - 3);
+          p.gas.proximo = p.tiempo + 12;
+          p.gas.aviso = false;
         }
       }
 
@@ -861,6 +1081,8 @@
         }
         l.invulnerable = Math.max(0, l.invulnerable - dt);
         l.enfriamiento = Math.max(0, l.enfriamiento - dt);
+        l.escudo = Math.max(0, l.escudo - dt);
+        l.lento = Math.max(0, l.lento - dt);
 
         // Recarga de munición
         if (l.municion < 3) {
@@ -871,6 +1093,14 @@
         // Curación pasiva tras unos segundos sin recibir daño
         if (p.tiempo - l.ultimoDano > ESPERA_CURACION && l.vida < l.vidaMax) {
           l.vida = Math.min(l.vidaMax, l.vida + l.vidaMax * 0.13 * dt);
+        }
+
+        // Daño del gas
+        if (supervivencia && enGas(l.x, l.y)) {
+          l.vida -= DANO_GAS * dt;
+          l.ultimoDano = p.tiempo;
+          if (Math.random() < dt * 6) particulas(l.x + azar(-15, 15), l.y + azar(-15, 15), '#8ef05a', 1, 40);
+          if (l.vida <= 0) { morir(l, null); continue; }
         }
 
         // Ráfagas pendientes
@@ -890,11 +1120,13 @@
             if (!e.golpeados.has(o) && distancia(l.x, l.y, o.x, o.y) < l.r + o.r + 6) {
               e.golpeados.add(o);
               herir(o, e.dano, l);
-              // Empujón
               const a = anguloHacia(l.x, l.y, o.x, o.y);
               moverConColision(mapa, o, Math.cos(a) * 40, Math.sin(a) * 40);
             }
           }
+          // La embestida también rompe cajas
+          const fx = l.x + Math.cos(Math.atan2(e.vy, e.vx)) * (l.r + 6), fy = l.y + Math.sin(Math.atan2(e.vy, e.vx)) * (l.r + 6);
+          if (casillaEn(mapa, fx, fy) === 'C') danarCaja(mapa, fx, fy, e.dano * dt * 4, l);
           particulas(l.x, l.y, l.def.color, 2, 60);
           if (e.restante <= 0 || !movio) l.embestida = null;
         } else {
@@ -904,13 +1136,14 @@
           const n = Math.hypot(dx, dy);
           if (n > 0) {
             dx /= Math.max(1, n); dy /= Math.max(1, n);
-            moverConColision(mapa, l, dx * l.def.velocidad * dt, dy * l.def.velocidad * dt);
+            const velocidad = l.def.velocidad * (l.lento > 0 ? 0.5 : 1);
+            moverConColision(mapa, l, dx * velocidad * dt, dy * velocidad * dt);
             if (!l.esJugador || !entrada.apuntando) l.angulo = Math.atan2(dy, dx);
           }
           if (l.esJugador) { l.ia.dirX = dx; l.ia.dirY = dy; }
         }
 
-        // Recoger cristales
+        // Recoger cristales y cubos
         for (let i = p.cristales.length - 1; i >= 0; i--) {
           const c = p.cristales[i];
           if (c.aparicion > 0) continue;
@@ -922,6 +1155,11 @@
             if (l.esJugador) sonido.recoger();
           }
         }
+        for (let i = p.cubos.length - 1; i >= 0; i--) {
+          const c = p.cubos[i];
+          if (c.aparicion > 0) continue;
+          if (distancia(l.x, l.y, c.x, c.y) < l.r + 12) { p.cubos.splice(i, 1); recogerCubo(l); }
+        }
       }
 
       // Balas
@@ -932,19 +1170,20 @@
         let eliminar = false;
 
         if (b.lanzamiento) {
-          if (b.recorrido >= b.alcance) {
-            explotar(b);
-            eliminar = true;
-          }
+          if (b.recorrido >= b.alcance) { explotar(b); eliminar = true; }
         } else {
           if (b.recorrido >= b.alcance) eliminar = true;
-          else if (!b.perforante && esMuro(mapa, b.x, b.y)) { eliminar = true; particulas(b.x, b.y, '#cccccc', 4, 70); }
-          else {
+          else if (esMuro(mapa, b.x, b.y)) {
+            if (casillaEn(mapa, b.x, b.y) === 'C') danarCaja(mapa, b.x, b.y, b.dano, b.duenio);
+            else particulas(b.x, b.y, '#cccccc', 4, 70);
+            if (!b.perforante) eliminar = true;
+          } else {
             for (const o of p.luchadores) {
               if (o.muerto || o.equipo === b.equipo || b.golpeados.has(o)) continue;
               if (distancia(b.x, b.y, o.x, o.y) < b.r + o.r) {
                 b.golpeados.add(o);
                 herir(o, b.dano, b.duenio);
+                if (b.cadena > 0) saltarRayo(b, o);
                 if (!b.perforante) { eliminar = true; break; }
               }
             }
@@ -953,15 +1192,17 @@
         if (eliminar) p.balas.splice(i, 1);
       }
 
-      // Cristales (animación de aparición)
+      // Objetos sueltos (animación de aparición)
       for (const c of p.cristales) { c.fase += dt * 3; c.aparicion = Math.max(0, c.aparicion - dt); }
+      for (const c of p.cubos) { c.fase += dt * 3; c.aparicion = Math.max(0, c.aparicion - dt); }
 
-      // Partículas y textos
+      // Partículas, rayos y textos
       for (let i = p.particulas.length - 1; i >= 0; i--) {
         const q = p.particulas[i];
         q.vida -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.9; q.vy *= 0.9;
         if (q.vida <= 0) p.particulas.splice(i, 1);
       }
+      for (let i = p.rayos.length - 1; i >= 0; i--) { p.rayos[i].vida -= dt; if (p.rayos[i].vida <= 0) p.rayos.splice(i, 1); }
       for (let i = p.textos.length - 1; i >= 0; i--) {
         const t = p.textos[i];
         t.vida -= dt; t.y -= 40 * dt;
@@ -972,28 +1213,33 @@
         if (p.avisos[i].restante <= 0) p.avisos.splice(i, 1);
       }
 
-      // Cuenta atrás de victoria
-      const c0 = cristalesEquipo(0), c1 = cristalesEquipo(1);
-      let equipoLider = -1;
-      if (c0 >= CRISTALES_PARA_GANAR && c1 < CRISTALES_PARA_GANAR) equipoLider = 0;
-      if (c1 >= CRISTALES_PARA_GANAR && c0 < CRISTALES_PARA_GANAR) equipoLider = 1;
-      if (equipoLider !== p.cuentaAtras.equipo) {
-        if (p.cuentaAtras.equipo !== -1 && equipoLider === -1) aviso('¡Cuenta atrás cancelada!', 1.5, '#ffd43b');
-        p.cuentaAtras.equipo = equipoLider;
-        p.cuentaAtras.restante = CUENTA_ATRAS;
-        if (equipoLider === 0) aviso('¡Tu equipo tiene ' + CRISTALES_PARA_GANAR + ' cristales! ¡Aguantad!', 2, '#8ef05a');
-        if (equipoLider === 1) aviso('¡El rival tiene ' + CRISTALES_PARA_GANAR + ' cristales! ¡A por ellos!', 2, '#ff6b6b');
-      }
-      if (p.cuentaAtras.equipo !== -1) {
-        p.cuentaAtras.restante -= dt;
-        if (p.cuentaAtras.restante <= 0) terminar(p.cuentaAtras.equipo, 'Un equipo ha conservado ' + CRISTALES_PARA_GANAR + ' cristales durante ' + CUENTA_ATRAS + ' segundos.');
-      }
-
-      // Límite de tiempo
-      if (!p.terminada && p.tiempo >= DURACION_MAXIMA) {
-        if (c0 > c1) terminar(0, 'Se acabó el tiempo: tu equipo tenía más cristales.');
-        else if (c1 > c0) terminar(1, 'Se acabó el tiempo: el rival tenía más cristales.');
-        else terminar(-1, 'Se acabó el tiempo con los mismos cristales.');
+      if (supervivencia) {
+        const j = jugador();
+        if (j.muerto) terminar(-2, 'Has quedado en el puesto ' + j.puesto + ' de ' + JUGADORES_SUPERVIVENCIA + '.');
+        else if (vivos() === 1) { j.puesto = 1; terminar(0, '¡Eres el último en pie! Puesto 1 de ' + JUGADORES_SUPERVIVENCIA + '.'); }
+      } else {
+        // Cuenta atrás de victoria
+        const c0 = cristalesEquipo(0), c1 = cristalesEquipo(1);
+        let equipoLider = -1;
+        if (c0 >= CRISTALES_PARA_GANAR && c1 < CRISTALES_PARA_GANAR) equipoLider = 0;
+        if (c1 >= CRISTALES_PARA_GANAR && c0 < CRISTALES_PARA_GANAR) equipoLider = 1;
+        if (equipoLider !== p.cuentaAtras.equipo) {
+          if (p.cuentaAtras.equipo !== -1 && equipoLider === -1) aviso('¡Cuenta atrás cancelada!', 1.5, '#ffd43b');
+          p.cuentaAtras.equipo = equipoLider;
+          p.cuentaAtras.restante = CUENTA_ATRAS;
+          if (equipoLider === 0) aviso('¡Tu equipo tiene ' + CRISTALES_PARA_GANAR + ' cristales! ¡Aguantad!', 2, '#8ef05a');
+          if (equipoLider === 1) aviso('¡El rival tiene ' + CRISTALES_PARA_GANAR + ' cristales! ¡A por ellos!', 2, '#ff6b6b');
+        }
+        if (p.cuentaAtras.equipo !== -1) {
+          p.cuentaAtras.restante -= dt;
+          if (p.cuentaAtras.restante <= 0) terminar(p.cuentaAtras.equipo, 'Un equipo ha conservado ' + CRISTALES_PARA_GANAR + ' cristales durante ' + CUENTA_ATRAS + ' segundos.');
+        }
+        // Límite de tiempo
+        if (!p.terminada && p.tiempo >= DURACION_MAXIMA) {
+          if (c0 > c1) terminar(0, 'Se acabó el tiempo: tu equipo tenía más cristales.');
+          else if (c1 > c0) terminar(1, 'Se acabó el tiempo: el rival tenía más cristales.');
+          else terminar(-1, 'Se acabó el tiempo con los mismos cristales.');
+        }
       }
 
       // Cámara que sigue al jugador
@@ -1009,15 +1255,33 @@
         if (o.muerto || o.equipo === b.equipo) continue;
         if (distancia(b.x, b.y, o.x, o.y) < b.area + o.r) herir(o, b.dano, b.duenio);
       }
+      for (const clave of Object.keys(partida.mapa.cajas)) {
+        const [f, c] = clave.split(',').map(Number);
+        const cx = c * TILE + TILE / 2, cy = f * TILE + TILE / 2;
+        if (distancia(b.x, b.y, cx, cy) < b.area + TILE * 0.5) danarCaja(partida.mapa, cx, cy, b.dano, b.duenio);
+      }
       partida.particulas.push({ x: b.x, y: b.y, vx: 0, vy: 0, vida: 0.3, color: b.color, r: b.area, anillo: true });
     }
 
-    function terminar(equipoGanador, motivo) {
+    // ganador: 0 = el jugador o su equipo, 1 = el rival, -1 = empate, -2 = eliminado en supervivencia
+    function terminar(ganador, motivo) {
       if (partida.terminada) return;
       partida.terminada = true;
-      partida.ganador = equipoGanador;
+      partida.ganador = ganador;
       partida.motivo = motivo;
-      if (equipoGanador === 0) sonido.victoria(); else if (equipoGanador === 1) sonido.derrota();
+      const j = jugador();
+      let cambio = 0;
+      if (partida.modo === 'supervivencia') {
+        const puesto = limitar(j.puesto || JUGADORES_SUPERVIVENCIA, 1, JUGADORES_SUPERVIVENCIA);
+        partida.puestoJugador = puesto;
+        cambio = TROFEOS_PUESTO[puesto - 1];
+      } else {
+        cambio = ganador === 0 ? 8 : ganador === 1 ? -3 : 2;
+      }
+      const antes = almacen.trofeos(j.tipo);
+      partida.cambioTrofeos = almacen.sumar(j.tipo, cambio) - antes;
+      const victoria = ganador === 0 || (partida.modo === 'supervivencia' && partida.puestoJugador <= 3);
+      if (victoria) sonido.victoria(); else if (ganador !== -1) sonido.derrota();
       setTimeout(mostrarFinal, 1400);
     }
 
@@ -1057,7 +1321,9 @@
     window.addEventListener('resize', redimensionar);
     redimensionar();
 
-    const enJuego = () => partida && !partida.terminada && document.getElementById('menu').classList.contains('oculta') && document.getElementById('final').classList.contains('oculta');
+    const menu = document.getElementById('menu');
+    const final = document.getElementById('final');
+    const enJuego = () => partida && !partida.terminada && menu.classList.contains('oculta') && final.classList.contains('oculta');
 
     function posicionMundo(px, py) { return { x: px + partida.camara.x, y: py + partida.camara.y }; }
 
@@ -1074,11 +1340,22 @@
       return mejor;
     }
 
+    // Caja más cercana en alcance (para disparo automático en supervivencia)
+    function cajaAutomatica(l) {
+      let mejor = null, dm = Infinity;
+      for (const clave of Object.keys(partida.mapa.cajas)) {
+        const [f, c] = clave.split(',').map(Number);
+        const bx = c * TILE + TILE / 2, by = f * TILE + TILE / 2;
+        const d = distancia(l.x, l.y, bx, by);
+        if (d < l.def.alcance * 0.9 && d < dm) { dm = d; mejor = { x: bx, y: by }; }
+      }
+      return mejor;
+    }
+
     function dispararJugadorHacia(mx, my) {
       const j = jugador();
       if (j.muerto) return;
-      const a = anguloHacia(j.x, j.y, mx, my);
-      disparar(j, a, distancia(j.x, j.y, mx, my));
+      disparar(j, anguloHacia(j.x, j.y, mx, my), distancia(j.x, j.y, mx, my));
     }
 
     function dispararJugadorAuto() {
@@ -1087,12 +1364,12 @@
       const o = objetivoAutomatico(j);
       if (o) {
         const t = distancia(j.x, j.y, o.x, o.y) / j.def.ataque.velocidad;
-        const px = o.x + (o.ia.dirX || 0) * o.def.velocidad * t;
-        const py = o.y + (o.ia.dirY || 0) * o.def.velocidad * t;
-        dispararJugadorHacia(px, py);
-      } else {
-        dispararJugadorHacia(j.x + Math.cos(j.angulo) * 100, j.y + Math.sin(j.angulo) * 100);
+        dispararJugadorHacia(o.x + (o.ia.dirX || 0) * o.def.velocidad * t, o.y + (o.ia.dirY || 0) * o.def.velocidad * t);
+        return;
       }
+      const caja = cajaAutomatica(j);
+      if (caja) dispararJugadorHacia(caja.x, caja.y);
+      else dispararJugadorHacia(j.x + Math.cos(j.angulo) * 100, j.y + Math.sin(j.angulo) * 100);
     }
 
     function superJugadorHacia(mx, my) {
@@ -1112,7 +1389,7 @@
 
     // Teclado
     window.addEventListener('keydown', e => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key) && enJuego()) e.preventDefault();
       entrada.teclas.add(e.key.toLowerCase());
       if (!enJuego()) return;
       if (e.key === ' ') {
@@ -1126,6 +1403,7 @@
       if (e.key.toLowerCase() === 'm') { sonido.activo = !sonido.activo; aviso(sonido.activo ? 'Sonido activado' : 'Sonido silenciado', 1); }
     });
     window.addEventListener('keyup', e => entrada.teclas.delete(e.key.toLowerCase()));
+    window.addEventListener('blur', () => entrada.teclas.clear());
 
     function leerTeclado() {
       const t = entrada.teclas;
@@ -1243,6 +1521,18 @@
       return false;
     }
 
+    function poligono(x, y, r, lados, angulo, radioInterior) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(angulo);
+      const n = radioInterior ? lados * 2 : lados;
+      for (let i = 0; i < n; i++) {
+        const rr = radioInterior && i % 2 ? radioInterior : r;
+        const a = (i / n) * Math.PI * 2;
+        if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.restore();
+    }
+
     function dibujarForma(x, y, r, forma, angulo) {
       ctx.beginPath();
       if (forma === 'cuadrado') {
@@ -1258,20 +1548,25 @@
         ctx.save(); ctx.translate(x, y); ctx.rotate(angulo);
         ctx.moveTo(r * 1.1, 0); ctx.lineTo(-r * 0.8, r * 0.95); ctx.lineTo(-r * 0.8, -r * 0.95); ctx.closePath();
         ctx.restore();
+      } else if (forma === 'hexagono') {
+        poligono(x, y, r * 1.05, 6, angulo);
+      } else if (forma === 'pentagono') {
+        poligono(x, y, r * 1.08, 5, angulo);
+      } else if (forma === 'estrella') {
+        poligono(x, y, r * 1.2, 5, angulo, r * 0.7);
       } else {
         ctx.arc(x, y, r, 0, Math.PI * 2);
       }
     }
 
     function dibujarLuchador(l, esMiniatura = false) {
-      const j = partida ? jugador() : null;
-      const esAliado = !partida || l.equipo === 0;
+      const esAliado = !partida || l.equipo === jugador().equipo;
       const parpadeo = l.invulnerable > 0 && Math.floor(partida.tiempo * 12) % 2 === 0;
       const oculto = partida && esArbusto(partida.mapa, l.x, l.y);
 
       ctx.save();
       if (parpadeo) ctx.globalAlpha = 0.55;
-      if (oculto && l.equipo === 0) ctx.globalAlpha *= 0.7;
+      if (oculto && esAliado) ctx.globalAlpha *= 0.7;
 
       // Sombra
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -1288,6 +1583,10 @@
       dibujarForma(l.x, l.y, l.r, l.def.forma, l.angulo);
       ctx.fillStyle = l.def.color; ctx.fill();
       ctx.lineWidth = 3; ctx.strokeStyle = l.def.colorOscuro; ctx.stroke();
+      if (l.def.forma === 'anillo') {
+        ctx.beginPath(); ctx.arc(l.x, l.y, l.r * 0.62, 0, Math.PI * 2);
+        ctx.lineWidth = 4; ctx.strokeStyle = l.def.colorOscuro; ctx.stroke();
+      }
 
       // Ojos mirando hacia donde apunta
       const ex = l.x + Math.cos(l.angulo) * l.r * 0.45, ey = l.y + Math.sin(l.angulo) * l.r * 0.45;
@@ -1303,16 +1602,27 @@
       ctx.beginPath(); ctx.moveTo(l.x + Math.cos(l.angulo) * l.r * 0.6, l.y + Math.sin(l.angulo) * l.r * 0.6);
       ctx.lineTo(l.x + Math.cos(l.angulo) * (l.r + 10), l.y + Math.sin(l.angulo) * (l.r + 10)); ctx.stroke();
 
+      // Escudo activo
+      if (l.escudo > 0) {
+        ctx.strokeStyle = 'rgba(154,165,177,0.9)'; ctx.lineWidth = 4; ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.arc(l.x, l.y, l.r + 11, partida.tiempo * 2, partida.tiempo * 2 + Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // Ralentizado
+      if (l.lento > 0) {
+        ctx.fillStyle = '#ffe14d'; ctx.font = 'bold 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', l.x, l.y - l.r - 36);
+      }
+
       ctx.restore();
       if (esMiniatura) return;
 
-      // Nombre, vida y cristales
+      // Nombre, vida, cristales y cubos
       const ancho = 56, alto = 8, bx = l.x - ancho / 2, by = l.y - l.r - 24;
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, ancho + 4, alto + 4, 4); ctx.fill();
       ctx.fillStyle = esAliado ? (l.esJugador ? '#8ef05a' : '#4fa3ff') : '#ff4d4d';
       ctx.fillRect(bx, by, ancho * limitar(l.vida / l.vidaMax, 0, 1), alto);
-      // Marcas de vida cada 1000 puntos
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       for (let v = 1000; v < l.vidaMax; v += 1000) ctx.fillRect(bx + ancho * v / l.vidaMax - 0.5, by, 1, alto);
 
@@ -1325,6 +1635,12 @@
         dibujarCristal(gx, gy, 7, 0);
         ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
         ctx.fillStyle = '#ffffff'; ctx.strokeText(String(l.cristales), gx + 9, gy); ctx.fillText(String(l.cristales), gx + 9, gy);
+      }
+      if (l.cubos > 0) {
+        const gx = l.x + ancho / 2 + 10, gy = by + alto / 2;
+        dibujarCubo(gx, gy, 6, 0);
+        ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff'; ctx.strokeText(String(l.cubos), gx + 9, gy); ctx.fillText(String(l.cubos), gx + 9, gy);
       }
 
       // Indicador de súper lista
@@ -1350,10 +1666,26 @@
       ctx.restore();
     }
 
+    function dibujarCubo(x, y, tam, fase) {
+      const bob = Math.sin(fase) * 2;
+      ctx.save();
+      ctx.translate(x, y + bob);
+      ctx.rotate(fase * 0.3);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(0, tam + 4 - bob, tam, tam * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+      const g = ctx.createLinearGradient(-tam, -tam, tam, tam);
+      g.addColorStop(0, '#c8ffb0'); g.addColorStop(0.5, '#6fd84a'); g.addColorStop(1, '#2f7d2d');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.roundRect(-tam, -tam, tam * 2, tam * 2, 3); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.restore();
+    }
+
     function dibujarMapa() {
       const m = partida.mapa, cam = partida.camara;
       const c0 = Math.max(0, Math.floor(cam.x / TILE)), c1 = Math.min(m.columnas - 1, Math.ceil((cam.x + W) / TILE));
       const f0 = Math.max(0, Math.floor(cam.y / TILE)), f1 = Math.min(m.filas - 1, Math.ceil((cam.y + H) / TILE));
+      const supervivencia = partida.modo === 'supervivencia';
 
       // Suelo
       for (let f = f0; f <= f1; f++) {
@@ -1365,39 +1697,63 @@
         }
       }
 
-      // Zonas de aparición
-      for (let eq = 0; eq < 2; eq++) {
-        ctx.fillStyle = eq === 0 ? 'rgba(79,163,255,0.22)' : 'rgba(255,77,77,0.22)';
-        for (const a of m.apariciones[eq]) {
-          ctx.beginPath(); ctx.arc(a.x, a.y, TILE * 0.55, 0, Math.PI * 2); ctx.fill();
+      if (!supervivencia) {
+        // Zonas de aparición
+        for (let eq = 0; eq < 2; eq++) {
+          ctx.fillStyle = eq === 0 ? 'rgba(79,163,255,0.22)' : 'rgba(255,77,77,0.22)';
+          for (const a of m.apariciones[eq]) { ctx.beginPath(); ctx.arc(a.x, a.y, TILE * 0.55, 0, Math.PI * 2); ctx.fill(); }
         }
+        // Mina
+        ctx.save();
+        ctx.translate(m.mina.x, m.mina.y);
+        ctx.fillStyle = '#6b5a4a';
+        ctx.beginPath(); ctx.ellipse(0, 0, TILE * 1.1, TILE * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#3d3128';
+        ctx.beginPath(); ctx.ellipse(0, 0, TILE * 0.8, TILE * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+        const pulso = 0.5 + 0.5 * Math.sin(partida.tiempo * 3);
+        ctx.fillStyle = 'rgba(199,125,255,' + (0.25 + pulso * 0.35) + ')';
+        ctx.beginPath(); ctx.ellipse(0, 0, TILE * 0.5, TILE * 0.33, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
 
-      // Mina
-      ctx.save();
-      ctx.translate(m.mina.x, m.mina.y);
-      ctx.fillStyle = '#6b5a4a';
-      ctx.beginPath(); ctx.ellipse(0, 0, TILE * 1.1, TILE * 0.8, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#3d3128';
-      ctx.beginPath(); ctx.ellipse(0, 0, TILE * 0.8, TILE * 0.55, 0, 0, Math.PI * 2); ctx.fill();
-      const pulso = 0.5 + 0.5 * Math.sin(partida.tiempo * 3);
-      ctx.fillStyle = 'rgba(199,125,255,' + (0.25 + pulso * 0.35) + ')';
-      ctx.beginPath(); ctx.ellipse(0, 0, TILE * 0.5, TILE * 0.33, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-
-      // Muros (bloques con cara superior)
+      // Muros y cajas (bloques con cara superior)
       for (let f = f0; f <= f1; f++) {
         for (let c = c0; c <= c1; c++) {
-          if (m.casillas[f][c] !== '#') continue;
+          const ch = m.casillas[f][c];
+          if (ch !== '#' && ch !== 'C') continue;
           const x = c * TILE, y = f * TILE;
-          ctx.fillStyle = '#5b4b7a';
-          ctx.fillRect(x, y + 6, TILE, TILE - 6);
-          ctx.fillStyle = '#8a7ab0';
-          ctx.fillRect(x, y - 6, TILE, TILE - 6);
-          ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
-          ctx.strokeRect(x + 0.5, y - 5.5, TILE - 1, TILE - 7);
+          if (ch === '#') {
+            ctx.fillStyle = '#5b4b7a'; ctx.fillRect(x, y + 6, TILE, TILE - 6);
+            ctx.fillStyle = '#8a7ab0'; ctx.fillRect(x, y - 6, TILE, TILE - 6);
+            ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
+            ctx.strokeRect(x + 0.5, y - 5.5, TILE - 1, TILE - 7);
+          } else {
+            const vida = (m.cajas[f + ',' + c] || 0) / VIDA_CAJA;
+            ctx.fillStyle = '#8a5a2b'; ctx.fillRect(x + 4, y + 8, TILE - 8, TILE - 10);
+            ctx.fillStyle = '#c9a24a'; ctx.fillRect(x + 4, y - 2, TILE - 8, TILE - 10);
+            ctx.strokeStyle = '#6b4320'; ctx.lineWidth = 2;
+            ctx.strokeRect(x + 5, y - 1, TILE - 10, TILE - 12);
+            ctx.beginPath(); ctx.moveTo(x + 5, y - 1); ctx.lineTo(x + TILE - 5, y + TILE - 13); ctx.moveTo(x + TILE - 5, y - 1); ctx.lineTo(x + 5, y + TILE - 13); ctx.stroke();
+            if (vida < 1) {
+              ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x + 6, y + TILE - 6, TILE - 12, 4);
+              ctx.fillStyle = '#ff9f1c'; ctx.fillRect(x + 6, y + TILE - 6, (TILE - 12) * vida, 4);
+            }
+          }
         }
       }
+    }
+
+    function dibujarGas() {
+      if (partida.modo !== 'supervivencia' || partida.gas.anillo <= 0) return;
+      const m = partida.mapa, a = partida.gas.anillo * TILE;
+      ctx.fillStyle = 'rgba(120,220,80,0.45)';
+      ctx.fillRect(0, 0, m.ancho, a);
+      ctx.fillRect(0, m.alto - a, m.ancho, a);
+      ctx.fillRect(0, a, a, m.alto - 2 * a);
+      ctx.fillRect(m.ancho - a, a, a, m.alto - 2 * a);
+      ctx.strokeStyle = 'rgba(142,240,90,0.9)'; ctx.lineWidth = 3; ctx.setLineDash([10, 6]);
+      ctx.strokeRect(a, a, m.ancho - 2 * a, m.alto - 2 * a);
+      ctx.setLineDash([]);
     }
 
     function dibujarArbustos(encima) {
@@ -1435,46 +1791,68 @@
         return;
       }
       ctx.save();
-      if (b.esSuper) { ctx.shadowColor = '#ffd43b'; ctx.shadowBlur = 14; }
+      if (b.esSuper || b.cadena) { ctx.shadowColor = b.esSuper ? '#ffd43b' : b.color; ctx.shadowBlur = 14; }
       ctx.fillStyle = b.esSuper ? '#ffe680' : b.color;
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.restore();
     }
 
+    function dibujarRayo(r) {
+      const [[ax, ay], [bx, by]] = r.puntos;
+      ctx.save();
+      ctx.globalAlpha = limitar(r.vida / 0.2, 0, 1);
+      ctx.strokeStyle = '#ffe14d'; ctx.lineWidth = 3; ctx.shadowColor = '#ffe14d'; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(ax, ay);
+      const segmentos = 5;
+      for (let i = 1; i < segmentos; i++) {
+        const t = i / segmentos;
+        ctx.lineTo(ax + (bx - ax) * t + azar(-8, 8), ay + (by - ay) * t + azar(-8, 8));
+      }
+      ctx.lineTo(bx, by); ctx.stroke();
+      ctx.restore();
+    }
+
     function dibujarHUD() {
       const p = partida, j = jugador();
-      const c0 = cristalesEquipo(0), c1 = cristalesEquipo(1);
+      const supervivencia = p.modo === 'supervivencia';
+      const cx = W / 2, cy = 34;
 
       // Marcador superior
-      const cx = W / 2, cy = 34;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.roundRect(cx - 120, 8, 240, 52, 14); ctx.fill();
       ctx.font = 'bold 28px system-ui, sans-serif'; ctx.textBaseline = 'middle';
-      ctx.textAlign = 'right'; ctx.fillStyle = '#4fa3ff'; ctx.fillText(String(c0), cx - 24, cy);
-      ctx.textAlign = 'left'; ctx.fillStyle = '#ff4d4d'; ctx.fillText(String(c1), cx + 24, cy);
-      dibujarCristal(cx, cy, 10, p.tiempo * 3);
-
-      // Cuenta atrás o tiempo restante
-      ctx.textAlign = 'center';
-      if (p.cuentaAtras.equipo !== -1 && !p.terminada) {
-        const s = Math.max(0, Math.ceil(p.cuentaAtras.restante));
-        ctx.font = 'bold 44px system-ui, sans-serif';
-        ctx.fillStyle = p.cuentaAtras.equipo === 0 ? '#8ef05a' : '#ff6b6b';
-        ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 5;
-        ctx.strokeText(String(s), cx, 96); ctx.fillText(String(s), cx, 96);
+      if (supervivencia) {
+        ctx.textAlign = 'center'; ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px system-ui, sans-serif';
+        ctx.fillText('☠ ' + vivos() + ' en pie', cx, cy);
+        const faltan = Math.max(0, p.gas.proximo - p.tiempo);
+        ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillStyle = faltan < 5 ? '#8ef05a' : 'rgba(255,255,255,0.8)';
+        ctx.fillText('Gas en ' + Math.ceil(faltan) + ' s', cx, 72);
       } else {
-        const restante = Math.max(0, DURACION_MAXIMA - p.tiempo);
-        const mm = Math.floor(restante / 60), ss = Math.floor(restante % 60);
-        ctx.font = 'bold 14px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.fillText(mm + ':' + String(ss).padStart(2, '0'), cx, 72);
+        const c0 = cristalesEquipo(0), c1 = cristalesEquipo(1);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#4fa3ff'; ctx.fillText(String(c0), cx - 24, cy);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#ff4d4d'; ctx.fillText(String(c1), cx + 24, cy);
+        dibujarCristal(cx, cy, 10, p.tiempo * 3);
+        ctx.textAlign = 'center';
+        if (p.cuentaAtras.equipo !== -1 && !p.terminada) {
+          const s = Math.max(0, Math.ceil(p.cuentaAtras.restante));
+          ctx.font = 'bold 44px system-ui, sans-serif';
+          ctx.fillStyle = p.cuentaAtras.equipo === 0 ? '#8ef05a' : '#ff6b6b';
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 5;
+          ctx.strokeText(String(s), cx, 96); ctx.fillText(String(s), cx, 96);
+        } else {
+          const restante = Math.max(0, DURACION_MAXIMA - p.tiempo);
+          const mm = Math.floor(restante / 60), ss = Math.floor(restante % 60);
+          ctx.font = 'bold 14px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.fillText(mm + ':' + String(ss).padStart(2, '0'), cx, 72);
+        }
       }
 
       // Avisos
       let ay = H * 0.3;
       for (const a of p.avisos) {
-        const alfa = Math.min(1, a.restante / 0.4);
-        ctx.globalAlpha = alfa;
+        ctx.globalAlpha = Math.min(1, a.restante / 0.4);
         ctx.font = 'bold ' + Math.round(limitar(W / 24, 13, 20)) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 5; ctx.fillStyle = a.color;
         ctx.strokeText(a.texto, W / 2, ay, W - 24); ctx.fillText(a.texto, W / 2, ay, W - 24);
@@ -1482,18 +1860,23 @@
         ay += 28;
       }
 
-      // Panel del jugador (abajo a la izquierda en escritorio, centrado abajo en móvil)
+      // Aviso de gas sobre el jugador
+      if (supervivencia && !j.muerto && enGas(j.x, j.y) && Math.floor(p.tiempo * 3) % 2 === 0) {
+        ctx.font = 'bold 22px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 5; ctx.fillStyle = '#8ef05a';
+        ctx.strokeText('¡ESTÁS EN EL GAS!', W / 2, H * 0.22); ctx.fillText('¡ESTÁS EN EL GAS!', W / 2, H * 0.22);
+      }
+
+      // Panel del jugador
       const px = entrada.esTactil ? W / 2 - 90 : 16, py = H - 74;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.roundRect(px, py, 180, 60, 12); ctx.fill();
       ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillStyle = '#ffd43b'; ctx.fillText(j.def.nombre + ' · ' + j.nombre, px + 10, py + 6);
-      // Vida
+      ctx.fillStyle = '#ffd43b'; ctx.fillText(j.def.nombre + ' · ' + j.nombre + (j.cubos ? ' · ' + j.cubos + ' cubos' : ''), px + 10, py + 6);
       ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(px + 10, py + 26, 160, 10);
       ctx.fillStyle = '#8ef05a'; ctx.fillRect(px + 10, py + 26, 160 * limitar(j.vida / j.vidaMax, 0, 1), 10);
       ctx.font = 'bold 10px system-ui, sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
       ctx.fillText(Math.max(0, Math.round(j.vida)) + ' / ' + j.vidaMax, px + 90, py + 25);
-      // Munición
       for (let i = 0; i < 3; i++) {
         const lleno = i < j.municion;
         const parcial = i === j.municion ? j.recargando / j.def.recarga : 0;
@@ -1501,7 +1884,7 @@
         ctx.fillStyle = '#ff9f1c'; ctx.fillRect(px + 10 + i * 54, py + 42, 50 * (lleno ? 1 : parcial), 9);
       }
 
-      // Barra de súper (y botón táctil)
+      // Súper (botón táctil o barra)
       const bs = botonSuper();
       if (entrada.esTactil) {
         const lista = j.cargaSuper >= 100;
@@ -1549,7 +1932,7 @@
       }
 
       // Reaparición
-      if (j.muerto) {
+      if (j.muerto && !supervivencia) {
         ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
         ctx.font = 'bold 30px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff';
         ctx.fillText('Reapareces en ' + Math.ceil(j.reaparicion) + '…', W / 2, H / 2);
@@ -1559,8 +1942,10 @@
       if (p.terminada) {
         ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, H / 2 - 50, W, 100);
         ctx.font = 'bold 48px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = p.ganador === 0 ? '#ffd43b' : p.ganador === 1 ? '#ff6b6b' : '#ffffff';
-        ctx.fillText(p.ganador === 0 ? '¡VICTORIA!' : p.ganador === 1 ? 'DERROTA' : 'EMPATE', W / 2, H / 2);
+        let texto, color;
+        if (supervivencia) { texto = p.puestoJugador === 1 ? '¡VICTORIA!' : 'PUESTO ' + p.puestoJugador + '.º'; color = p.puestoJugador <= 3 ? '#ffd43b' : '#ff6b6b'; }
+        else { texto = p.ganador === 0 ? '¡VICTORIA!' : p.ganador === 1 ? 'DERROTA' : 'EMPATE'; color = p.ganador === 0 ? '#ffd43b' : p.ganador === 1 ? '#ff6b6b' : '#ffffff'; }
+        ctx.fillStyle = color; ctx.fillText(texto, W / 2, H / 2);
       }
     }
 
@@ -1577,21 +1962,22 @@
       dibujarMapa();
       dibujarArbustos(false);
 
-      for (const c of p.cristales) {
-        const esc = c.aparicion > 0 ? 1 - c.aparicion / 0.5 : 1;
-        dibujarCristal(c.x, c.y, 9 * esc, c.fase);
-      }
+      for (const c of p.cristales) dibujarCristal(c.x, c.y, 9 * limitar(1 - c.aparicion / 0.5, 0.05, 1), c.fase);
+      for (const c of p.cubos) dibujarCubo(c.x, c.y, 8 * limitar(1 - c.aparicion / 0.5, 0.05, 1), c.fase);
 
       // Luchadores (enemigos ocultos en arbustos no se dibujan)
+      const miEquipo = jugador().equipo;
       for (const l of p.luchadores) {
         if (l.muerto) continue;
-        if (l.equipo !== 0 && !enemigoVisibleParaJugador(l)) continue;
+        if (l.equipo !== miEquipo && !enemigoVisibleParaJugador(l)) continue;
         dibujarLuchador(l);
       }
 
       for (const b of p.balas) dibujarBala(b);
+      for (const r of p.rayos) dibujarRayo(r);
 
       dibujarArbustos(true);
+      dibujarGas();
 
       for (const q of p.particulas) {
         ctx.globalAlpha = limitar(q.vida / 0.4, 0, 1);
@@ -1624,14 +2010,14 @@
     function bucle(ahora) {
       const dt = Math.min(0.05, (ahora - ultimoTiempo) / 1000);
       ultimoTiempo = ahora;
-      if (partida && document.getElementById('menu').classList.contains('oculta')) {
+      if (partida && menu.classList.contains('oculta')) {
         leerEntrada();
         if (!partida.terminada) actualizar(dt);
         else {
-          // Tras terminar, solo animamos las partículas
           partida.tiempo += dt;
           for (const q of partida.particulas) { q.vida -= dt; q.x += q.vx * dt; q.y += q.vy * dt; }
           partida.particulas = partida.particulas.filter(q => q.vida > 0);
+          partida.rayos = [];
         }
         dibujar();
       }
@@ -1642,26 +2028,46 @@
     /* =========================================================
        MENÚ Y PANTALLA FINAL
        ========================================================= */
-    const menu = document.getElementById('menu');
-    const final = document.getElementById('final');
     const contenedorTarjetas = document.getElementById('tarjetas');
+    const contenedorModos = document.getElementById('modos');
+
+    function construirModos() {
+      contenedorModos.innerHTML = '';
+      for (const [clave, m] of Object.entries(MODOS)) {
+        const el = document.createElement('div');
+        el.className = 'modo' + (clave === ajustes.modo ? ' elegido' : '');
+        el.innerHTML = '<span class="icono">' + m.icono + '</span><b>' + m.nombre + '</b><small>' + m.descripcion + '</small>';
+        el.addEventListener('click', () => {
+          ajustes.modo = clave;
+          document.querySelectorAll('.modo').forEach(x => x.classList.toggle('elegido', x === el));
+        });
+        contenedorModos.appendChild(el);
+      }
+    }
+
+    function danoTotal(def) {
+      const a = def.ataque;
+      return a.dano * (a.cantidad || 1);
+    }
 
     function construirTarjetas() {
       contenedorTarjetas.innerHTML = '';
+      document.getElementById('trofeos-total').textContent = almacen.total();
       for (const [clave, def] of Object.entries(LUCHADORES)) {
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta' + (clave === ajustes.tipoJugador ? ' elegida' : '');
         tarjeta.dataset.tipo = clave;
         const lienzo = document.createElement('canvas');
-        lienzo.width = 168; lienzo.height = 168;
+        lienzo.width = 144; lienzo.height = 144;
         tarjeta.appendChild(lienzo);
-        const vel = Math.round((def.velocidad - 140) / 40 * 100);
+        const vel = Math.round((def.velocidad - 130) / 60 * 100);
         tarjeta.insertAdjacentHTML('beforeend',
+          '<span class="trofeos">🏆 ' + almacen.trofeos(clave) + '</span>' +
           '<b>' + def.nombre + '</b>' +
-          '<small><b style="font-size:.78rem;color:#ffd43b">' + def.rol + '</b></small>' +
+          '<small><b style="font-size:.76rem;color:#ffd43b">' + def.rol + '</b></small>' +
           '<small>' + def.descripcion + '</small>' +
           '<div class="barras">' +
-            '<span>Vida</span><div class="barra"><span style="width:' + Math.round(def.vida / 50) + '%"></span></div>' +
+            '<span>Vida</span><div class="barra"><span style="width:' + Math.round(def.vida / 52) + '%"></span></div>' +
             '<span>Daño</span><div class="barra"><span style="width:' + Math.round(danoTotal(def) / 20) + '%"></span></div>' +
             '<span>Alcance</span><div class="barra"><span style="width:' + Math.round(def.alcance / (9 * TILE) * 100) + '%"></span></div>' +
             '<span>Velocidad</span><div class="barra"><span style="width:' + limitar(vel, 15, 100) + '%"></span></div>' +
@@ -1672,21 +2078,15 @@
         });
         contenedorTarjetas.appendChild(tarjeta);
 
-        // Retrato en miniatura
         const c = lienzo.getContext('2d');
         c.setTransform(2, 0, 0, 2, 0, 0);
         dibujarRetrato(c, def);
       }
     }
 
-    function danoTotal(def) {
-      const a = def.ataque;
-      return a.dano * (a.cantidad || 1);
-    }
-
     // Dibuja un luchador en otro lienzo reutilizando la función de dibujo del juego
     function dibujarRetrato(lienzoCtx, def) {
-      const falso = { x: 42, y: 44, r: 24, angulo: -0.5, def, invulnerable: 0, equipo: 0, esJugador: false, nombre: '', cristales: 0, cargaSuper: 0, vida: 1, vidaMax: 1 };
+      const falso = { x: 36, y: 38, r: 22, angulo: -0.5, def, invulnerable: 0, equipo: 0, esJugador: false, nombre: '', cristales: 0, cubos: 0, cargaSuper: 0, vida: 1, vidaMax: 1, escudo: 0, lento: 0 };
       const anterior = ctx;
       ctx = lienzoCtx;
       try { dibujarLuchador(falso, true); } finally { ctx = anterior; }
@@ -1695,6 +2095,7 @@
     function mostrarMenu() {
       final.classList.add('oculta');
       menu.classList.remove('oculta');
+      construirModos();
       construirTarjetas();
     }
 
@@ -1707,18 +2108,31 @@
       menu.classList.add('oculta');
       final.classList.add('oculta');
       ultimoTiempo = performance.now();
+      // En móvil, intenta ponerse en pantalla completa
+      if (entrada.esTactil && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
     }
 
     function mostrarFinal() {
       const p = partida, j = jugador();
       const r = document.getElementById('resultado');
-      r.textContent = p.ganador === 0 ? '¡Victoria!' : p.ganador === 1 ? 'Derrota' : 'Empate';
-      r.className = p.ganador === 0 ? 'victoria' : p.ganador === 1 ? 'derrota' : 'empate';
+      if (p.modo === 'supervivencia') {
+        r.textContent = p.puestoJugador === 1 ? '¡Victoria!' : 'Puesto ' + p.puestoJugador + '.º';
+        r.className = p.puestoJugador === 1 ? 'victoria' : p.puestoJugador <= 3 ? 'empate' : 'derrota';
+      } else {
+        r.textContent = p.ganador === 0 ? '¡Victoria!' : p.ganador === 1 ? 'Derrota' : 'Empate';
+        r.className = p.ganador === 0 ? 'victoria' : p.ganador === 1 ? 'derrota' : 'empate';
+      }
       document.getElementById('motivo').textContent = p.motivo;
+      const ct = document.getElementById('cambio-trofeos');
+      ct.textContent = '🏆 ' + (p.cambioTrofeos >= 0 ? '+' : '') + p.cambioTrofeos + ' trofeos con ' + j.def.nombre + ' (total: ' + almacen.trofeos(j.tipo) + ')';
+      ct.className = 'cambio-trofeos ' + (p.cambioTrofeos >= 0 ? 'positivo' : 'negativo');
       document.getElementById('e-bajas').textContent = j.bajas;
       document.getElementById('e-muertes').textContent = j.muertes;
       document.getElementById('e-dano').textContent = Math.round(j.danoHecho).toLocaleString('es-ES');
-      document.getElementById('e-cristales').textContent = j.cristalesRecogidos;
+      document.getElementById('e-extra').textContent = p.modo === 'supervivencia' ? j.cubos : j.cristalesRecogidos;
+      document.getElementById('e-extra-texto').textContent = MODOS[p.modo].extraTexto;
       final.classList.remove('oculta');
     }
 
@@ -1726,6 +2140,52 @@
     document.getElementById('otra').addEventListener('click', empezar);
     document.getElementById('cambiar').addEventListener('click', mostrarMenu);
     document.getElementById('nombre').addEventListener('keydown', e => e.stopPropagation());
+
+    /* =========================================================
+       APP INSTALABLE (PWA): service worker y botón de instalación
+       ========================================================= */
+    const botonInstalar = document.getElementById('instalar');
+    const infoInstalar = document.getElementById('instalar-info');
+    const esStandalone = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || window.navigator.standalone === true;
+    const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    let eventoInstalacion = null;
+
+    if (esStandalone) document.getElementById('volver').classList.add('standalone');
+
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* sin caché sin conexión */ });
+    }
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      eventoInstalacion = e;
+      if (!esStandalone) botonInstalar.classList.remove('oculta');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      botonInstalar.classList.add('oculta');
+      infoInstalar.textContent = '✅ App instalada. Búscala en tu pantalla de inicio o en el menú de aplicaciones.';
+      infoInstalar.classList.remove('oculta');
+    });
+
+    // En iPhone/iPad no existe el aviso automático: se explica cómo hacerlo desde Safari
+    if (esIOS && !esStandalone) {
+      botonInstalar.classList.remove('oculta');
+    }
+
+    botonInstalar.addEventListener('click', async () => {
+      if (eventoInstalacion) {
+        eventoInstalacion.prompt();
+        const r = await eventoInstalacion.userChoice.catch(() => null);
+        if (r && r.outcome === 'accepted') botonInstalar.classList.add('oculta');
+        eventoInstalacion = null;
+        return;
+      }
+      infoInstalar.innerHTML = esIOS
+        ? '<b>En iPhone o iPad (Safari):</b> toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba) y elige <b>«Añadir a pantalla de inicio»</b>. Aparecerá el icono de Arena Brawl como una app más.'
+        : '<b>En Android (Chrome):</b> abre el menú ⋮ y toca <b>«Instalar aplicación»</b> o <b>«Añadir a pantalla de inicio»</b>.<br><b>En ordenador (Chrome o Edge):</b> pulsa el icono de instalar que aparece a la derecha de la barra de direcciones.';
+      infoInstalar.classList.toggle('oculta');
+    });
 
     mostrarMenu();
   </script>
