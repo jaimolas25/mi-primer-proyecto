@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiTube · Buscador y reproductor de vídeos de YouTube sin cuenta</title>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="MiTube: busca y reproduce cualquier vídeo de YouTube desde una página web ligera, sin cuenta ni instalación. Tendencias, canales, listas, vídeos recién subidos y resultados que se actualizan solos.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://jaimolas25.github.io/mi-primer-proyecto/tube/">
+  <!-- Verificación de Google Search Console: pega aquí la etiqueta <meta name="google-site-verification" ...> que te dé Google -->
+  <!-- Vista previa al compartir en redes y mensajería -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MiTube">
+  <meta property="og:title" content="MiTube · Buscador y reproductor de vídeos de YouTube">
+  <meta property="og:description" content="Busca y reproduce cualquier vídeo de YouTube desde una página web ligera, sin cuenta ni instalación.">
+  <meta property="og:url" content="https://jaimolas25.github.io/mi-primer-proyecto/tube/">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MiTube · Buscador y reproductor de vídeos de YouTube">
+  <meta name="twitter:description" content="Busca y reproduce cualquier vídeo de YouTube desde una página web ligera, sin cuenta ni instalación.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 21'%3E%3Crect width='30' height='21' rx='6' fill='%23ff0033'/%3E%3Cpath d='M12 5l9 5.5-9 5.5z' fill='%23fff'/%3E%3C/svg%3E">
+  <!-- Datos estructurados: ayudan a Google a entender qué es esta página -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "MiTube",
+    "url": "https://jaimolas25.github.io/mi-primer-proyecto/tube/",
+    "description": "Buscador y reproductor de vídeos de YouTube en una página web ligera, sin cuenta ni instalación.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any",
+    "inLanguage": "es",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://jaimolas25.github.io/mi-primer-proyecto/tube/#/buscar?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  <style>
+    :root {
+      --fondo: #0f0f0f; --fondo-2: #1f1f1f; --fondo-3: #272727; --borde: #3f3f3f;
+      --texto: #f1f1f1; --texto-2: #aaaaaa; --acento: #ff0033; --enlace: #3ea6ff;
+      --radio: 12px; --cabecera: 56px; --lateral: 220px;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; background: var(--fondo); color: var(--texto); }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    img { display: block; }
+
+    /* ---------- Cabecera ---------- */
+    header { position: fixed; top: 0; left: 0; right: 0; height: var(--cabecera); display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--fondo); z-index: 20; }
+    .logo { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.5px; white-space: nowrap; }
+    .logo .icono { width: 30px; height: 21px; border-radius: 6px; background: var(--acento); display: inline-flex; align-items: center; justify-content: center; }
+    .logo .icono::after { content: ""; border-left: 9px solid #fff; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; margin-left: 2px; }
+    .buscador { flex: 1; max-width: 640px; margin: 0 auto; position: relative; }
+    .buscador form { display: flex; }
+    .buscador input { flex: 1; min-width: 0; height: 40px; padding: 0 16px; border: 1px solid var(--borde); border-right: 0; border-radius: 20px 0 0 20px; background: #121212; color: var(--texto); font-size: 1rem; outline: none; }
+    .buscador input:focus { border-color: #1c62b9; }
+    .buscador button { width: 64px; height: 40px; border: 1px solid var(--borde); border-radius: 0 20px 20px 0; background: var(--fondo-3); }
+    .sugerencias { position: absolute; top: 44px; left: 0; right: 64px; background: var(--fondo-2); border-radius: 12px; padding: 8px 0; box-shadow: 0 4px 16px rgba(0,0,0,.5); display: none; }
+    .sugerencias.visible { display: block; }
+    .sugerencias div { padding: 8px 16px; cursor: pointer; }
+    .sugerencias div:hover, .sugerencias div.marcada { background: var(--fondo-3); }
+    .icono-boton { width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; font-size: 1.25rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .icono-boton:hover { background: var(--fondo-3); }
+
+    /* ---------- Lateral ---------- */
+    nav { position: fixed; top: var(--cabecera); bottom: 0; left: 0; width: var(--lateral); padding: 12px; overflow-y: auto; background: var(--fondo); z-index: 15; }
+    .item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; background: none; text-align: left; font-size: 0.9rem; }
+    .item:hover { background: var(--fondo-3); }
+    .item.activo { background: var(--fondo-3); font-weight: 600; }
+    .item .ico { width: 24px; text-align: center; font-size: 1.1rem; }
+    nav hr { border: 0; border-top: 1px solid var(--borde); margin: 12px 0; }
+    nav h3 { margin: 12px 12px 6px; font-size: 0.9rem; }
+    nav .nota { color: var(--texto-2); font-size: 0.75rem; padding: 0 12px; line-height: 1.5; }
+
+    /* ---------- Contenido ---------- */
+    main { margin-left: var(--lateral); padding: calc(var(--cabecera) + 16px) 24px 48px; min-height: 100vh; }
+    h1.titulo { font-size: 1.4rem; margin: 0 0 16px; }
+    .filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+    .filtros .grupo { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .filtros .etiqueta { color: var(--texto-2); font-size: 0.8rem; margin-right: 2px; }
+    .chip { padding: 6px 12px; border: 0; border-radius: 8px; background: var(--fondo-3); font-size: 0.85rem; white-space: nowrap; }
+    .chip.activo { background: var(--texto); color: var(--fondo); }
+    .separador { width: 1px; height: 24px; background: var(--borde); margin: 0 6px; }
+
+    .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 32px 16px; }
+    .tarjeta { cursor: pointer; }
+    .nuevo { animation: aparecer 0.6s ease-out; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+    .hora-refresco { margin: -8px 0 16px; }
+    .miniatura { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radio); overflow: hidden; background: var(--fondo-2); }
+    .miniatura img { width: 100%; height: 100%; object-fit: cover; }
+    .miniatura .duracion { position: absolute; right: 8px; bottom: 8px; padding: 2px 5px; border-radius: 4px; background: rgba(0,0,0,0.8); font-size: 0.75rem; font-weight: 600; }
+    .miniatura .duracion.directo { background: var(--acento); }
+    .miniatura .progreso { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,0.3); }
+    .miniatura .progreso span { display: block; height: 100%; background: var(--acento); }
+    .datos { display: flex; gap: 12px; margin-top: 12px; }
+    .avatar { border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; overflow: hidden; width: 36px; height: 36px; font-size: 1rem; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .datos h2 { margin: 0 0 4px; font-size: 1rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .datos p { margin: 0; color: var(--texto-2); font-size: 0.85rem; }
+    .verificado { font-size: 0.7rem; margin-left: 4px; color: var(--texto-2); }
+    .tarjeta-canal { display: flex; gap: 16px; align-items: center; padding: 12px; border-radius: var(--radio); background: var(--fondo-2); cursor: pointer; }
+    .tarjeta-canal .avatar { width: 72px; height: 72px; font-size: 1.8rem; }
+    .tarjeta-canal h2 { margin: 0 0 4px; font-size: 1.05rem; }
+    .tarjeta-canal p { margin: 0; color: var(--texto-2); font-size: 0.85rem; }
+    .mas { display: block; margin: 32px auto 0; padding: 10px 24px; border: 1px solid var(--borde); border-radius: 20px; background: none; }
+    .mas:hover { background: var(--fondo-3); }
+
+    /* ---------- Reproductor ---------- */
+    .reproductor { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 24px; }
+    .marco { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radio); overflow: hidden; background: #000; }
+    .marco iframe, .marco #player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .reproductor h1 { font-size: 1.25rem; margin: 12px 0 8px; line-height: 1.4; }
+    .fila-canal { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .fila-canal .avatar { width: 40px; height: 40px; cursor: pointer; }
+    .fila-canal .nombre-canal { font-weight: 600; cursor: pointer; }
+    .fila-canal .sub { color: var(--texto-2); font-size: 0.8rem; }
+    .fila-canal .acciones { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .pildora { padding: 8px 14px; border: 0; border-radius: 18px; background: var(--fondo-3); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .pildora:hover { background: var(--borde); }
+    .pildora.activa { background: var(--texto); color: var(--fondo); }
+    .descripcion { background: var(--fondo-3); border-radius: var(--radio); padding: 12px; font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; max-height: 130px; overflow: hidden; position: relative; cursor: pointer; line-height: 1.5; }
+    .descripcion a { color: var(--enlace); }
+    .descripcion.abierta { max-height: none; }
+    .descripcion .meta { font-weight: 600; margin-bottom: 8px; }
+    .descripcion .ver-mas { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 12px 10px; background: linear-gradient(transparent, var(--fondo-3) 60%); font-weight: 600; }
+    .descripcion.abierta .ver-mas { display: none; }
+    .lista-lateral h3 { margin: 0 0 12px; font-size: 1rem; }
+    .mini { display: flex; gap: 8px; margin-bottom: 8px; padding: 4px; border-radius: 8px; cursor: pointer; }
+    .mini:hover { background: var(--fondo-3); }
+    .mini .miniatura { width: 168px; flex-shrink: 0; border-radius: 8px; }
+    .mini h4 { margin: 0 0 4px; font-size: 0.875rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .mini p { margin: 0; color: var(--texto-2); font-size: 0.75rem; }
+
+    /* ---------- Shorts ---------- */
+    .rejilla-shorts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 24px 12px; }
+    .tarjeta-short { cursor: pointer; }
+    .tarjeta-short .miniatura { aspect-ratio: 9 / 16; border-radius: 12px; }
+    .tarjeta-short h2 { margin: 8px 0 4px; font-size: 0.9rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tarjeta-short p { margin: 0; color: var(--texto-2); font-size: 0.8rem; }
+    .short-vista { display: flex; gap: 16px; align-items: center; justify-content: center; }
+    .short-marco { position: relative; width: min(100%, calc((100vh - 150px) * 9 / 16), 460px); aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden; background: #000; }
+    .short-marco #player, .short-marco iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .short-controles { display: flex; flex-direction: column; gap: 12px; }
+    .boton-redondo { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--fondo-3); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+    .boton-redondo:hover { background: var(--borde); }
+    .boton-redondo:disabled { opacity: 0.4; cursor: default; }
+    .short-info { max-width: 560px; margin: 16px auto 0; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+    .short-info h1 { font-size: 1.05rem; margin: 0; line-height: 1.4; }
+    .short-info .fila-canal { margin: 0; justify-content: center; }
+    .short-info .fila-canal .acciones { margin-left: 0; }
+    .short-contador { color: var(--texto-2); font-size: 0.8rem; }
+    @media (max-width: 760px) {
+      .short-vista { flex-direction: column; gap: 10px; }
+      .short-controles { flex-direction: row; }
+      .short-marco { width: min(100%, calc((100vh - 230px) * 9 / 16)); }
+      .rejilla-shorts { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ---------- Canal ---------- */
+    .banner { width: 100%; aspect-ratio: 6.2 / 1; object-fit: cover; border-radius: var(--radio); margin-bottom: 16px; background: var(--fondo-2); }
+    .cabecera-canal { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; }
+    .cabecera-canal .avatar { width: 96px; height: 96px; font-size: 2.4rem; }
+    .cabecera-canal h1 { margin: 0 0 6px; font-size: 1.6rem; }
+    .cabecera-canal p { margin: 0; color: var(--texto-2); font-size: 0.9rem; }
+    .cabecera-canal .desc { margin-top: 6px; max-width: 700px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* ---------- Mensajes ---------- */
+    .vacio { max-width: 640px; margin: 60px auto; text-align: center; color: var(--texto-2); line-height: 1.6; }
+    .vacio h2 { color: var(--texto); }
+    .cargando { text-align: center; color: var(--texto-2); padding: 40px; }
+    .cargando::before { content: ""; display: block; width: 32px; height: 32px; margin: 0 auto 12px; border: 3px solid var(--borde); border-top-color: var(--texto); border-radius: 50%; animation: girar 0.8s linear infinite; }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    .aviso { background: #3a2a00; color: #ffd27a; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; }
+    kbd { background: var(--fondo-3); border: 1px solid var(--borde); border-radius: 4px; padding: 1px 6px; font-family: inherit; font-size: 0.75rem; }
+
+    /* ---------- Ajustes ---------- */
+    dialog { background: var(--fondo-2); color: var(--texto); border: 1px solid var(--borde); border-radius: var(--radio); padding: 24px; width: min(520px, 92vw); }
+    dialog::backdrop { background: rgba(0,0,0,0.6); }
+    dialog h2 { margin: 0 0 16px; }
+    dialog label { display: block; margin: 14px 0 6px; font-size: 0.9rem; font-weight: 600; }
+    dialog input, dialog select { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--borde); border-radius: 8px; background: #121212; color: var(--texto); font-size: 0.95rem; }
+    dialog small { color: var(--texto-2); display: block; margin-top: 4px; line-height: 1.4; }
+    dialog small a { color: var(--enlace); }
+    dialog .botones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    .casilla { display: flex !important; align-items: center; gap: 8px; }
+    .casilla input { width: auto; height: auto; }
+
+    /* ---------- Móvil ---------- */
+    @media (max-width: 1000px) { .reproductor { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) {
+      nav { transform: translateX(-100%); transition: transform 0.2s; }
+      nav.abierta { transform: none; box-shadow: 0 0 0 100vmax rgba(0,0,0,0.5); }
+      main { margin-left: 0; padding: calc(var(--cabecera) + 12px) 12px 32px; }
+      .rejilla { grid-template-columns: 1fr; gap: 24px; }
+      .logo span.texto { display: none; }
+      .cabecera-canal { flex-direction: column; text-align: center; }
+      .mini .miniatura { width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <button class="icono-boton" id="boton-menu" aria-label="Menú">☰</button>
+  <a class="logo" href="#/" id="logo"><span class="icono"></span><span class="texto">MiTube</span></a>
+  <div class="buscador">
+    <form id="form-busqueda" role="search" autocomplete="off">
+      <input type="search" id="busqueda" placeholder="Buscar en YouTube" aria-label="Buscar">
+      <button type="submit" aria-label="Buscar">🔍</button>
+    </form>
+    <div class="sugerencias" id="sugerencias"></div>
+  </div>
+  <button class="icono-boton" id="boton-ajustes" aria-label="Ajustes" title="Ajustes">⚙️</button>
+</header>
+
+<nav id="lateral">
+  <a class="item" href="#/"><span class="ico">🏠</span>Inicio</a>
+  <a class="item" href="#/tendencias"><span class="ico">🔥</span>Tendencias</a>
+  <a class="item" href="#/shorts"><span class="ico">▯</span>Shorts</a>
+  <a class="item" href="#/historial"><span class="ico">📜</span>Historial</a>
+  <hr>
+  <h3>Búsquedas recientes</h3>
+  <div id="recientes"></div>
+  <hr>
+  <p class="nota">Atajos: <kbd>/</kbd> buscar · <kbd>Esc</kbd> volver · <kbd>N</kbd> siguiente vídeo</p>
+  <p class="nota" id="nota-fuente"></p>
+</nav>
+
+<main id="contenido">
+  <noscript>
+    <h1>MiTube: buscador y reproductor de vídeos de YouTube</h1>
+    <p>Busca cualquier vídeo de YouTube, consulta las tendencias de tu país, explora canales y listas y reproduce los vídeos sin cuenta ni instalación. Esta página necesita JavaScript activado.</p>
+  </noscript>
+</main>
+
+<dialog id="ajustes">
+  <h2>Ajustes</h2>
+  <label for="aj-region">Región para las tendencias</label>
+  <select id="aj-region">
+    <option value="ES">España</option><option value="MX">México</option><option value="AR">Argentina</option>
+    <option value="CO">Colombia</option><option value="CL">Chile</option><option value="PE">Perú</option>
+    <option value="US">Estados Unidos</option><option value="GB">Reino Unido</option><option value="FR">Francia</option>
+    <option value="DE">Alemania</option><option value="IT">Italia</option><option value="PT">Portugal</option><option value="BR">Brasil</option>
+  </select>
+  <label for="aj-instancia">Servidor de datos (API de Piped)</label>
+  <input id="aj-instancia" list="lista-instancias" placeholder="https://api.piped.private.coffee">
+  <datalist id="lista-instancias"></datalist>
+  <small>Si las búsquedas fallan, prueba otro servidor de la lista. Se elige uno automáticamente si el actual no responde.</small>
+  <label for="aj-clave">Clave de la API de YouTube (opcional)</label>
+  <input id="aj-clave" type="password" placeholder="AIza…">
+  <small>Con una clave gratuita de <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud</a> (API "YouTube Data API v3") las búsquedas se hacen directamente contra YouTube y el filtro "Última hora" y el orden por fecha son exactos. Sin clave, se usa Piped y la ordenación se hace sobre los resultados obtenidos.</small>
+  <label class="casilla"><input type="checkbox" id="aj-autoplay"> Reproducir automáticamente el siguiente vídeo</label>
+  <label class="casilla"><input type="checkbox" id="aj-shorts"> Mostrar Shorts en los resultados</label>
+  <div class="botones">
+    <button class="pildora" id="aj-borrar">Borrar historial</button>
+    <button class="pildora activa" id="aj-cerrar">Guardar</button>
+  </div>
+</dialog>
+
+<script>
+// ============================================================
+//  Configuración y almacenamiento local
+// ============================================================
+const INSTANCIAS = [
+  "https://api.piped.private.coffee",
+  "https://pipedapi.kavin.rocks",
+  "https://pipedapi.drgns.space",
+  "https://api.piped.yt",
+  "https://pipedapi.ducks.party",
+  "https://piped-api.lunar.icu",
+  "https://pipedapi.r4fo.com",
+];
+const CLAVES = { ajustes: "mitube-ajustes", historial: "mitube-historial", busquedas: "mitube-busquedas", instancia: "mitube-instancia" };
+
+function leerLocal(clave, porDefecto) { try { return JSON.parse(localStorage.getItem(clave)) ?? porDefecto; } catch { return porDefecto; } }
+function guardarLocal(clave, valor) { try { localStorage.setItem(clave, JSON.stringify(valor)); } catch { /* sin almacenamiento */ } }
+
+const ajustes = Object.assign({ region: "ES", instancia: "", clave: "", autoplay: true, shorts: false }, leerLocal(CLAVES.ajustes, {}));
+let instanciaActiva = ajustes.instancia || leerLocal(CLAVES.instancia, INSTANCIAS[0]);
+
+// ============================================================
+//  Utilidades de formato
+// ============================================================
+function escapar(t) { return String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function formatoDuracion(seg) {
+  seg = Math.max(0, Math.floor(seg || 0));
+  const h = Math.floor(seg / 3600), m = Math.floor((seg % 3600) / 60), s = seg % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
+}
+function formatoNumero(n) {
+  if (n == null || n < 0) return "";
+  if (n >= 1e9) return (n / 1e9).toFixed(1).replace(".0", "") + " mil M";
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace(".0", "") + " M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1).replace(".0", "") + " mil";
+  return String(n);
+}
+function haceCuanto(ms, textoAlternativo) {
+  if (!ms || ms < 0) return traducirFecha(textoAlternativo);
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 60) return "hace un momento";
+  const unidades = [[31536000, "año", "años"], [2592000, "mes", "meses"], [604800, "semana", "semanas"], [86400, "día", "días"], [3600, "hora", "horas"], [60, "minuto", "minutos"]];
+  for (const [seg, uno, varios] of unidades) {
+    if (s >= seg) { const n = Math.floor(s / seg); return `hace ${n} ${n === 1 ? uno : varios}`; }
+  }
+  return "hace un momento";
+}
+function traducirFecha(texto) {
+  // Piped devuelve textos en inglés como "Streamed 3 hours ago"; los pasamos al español
+  if (!texto) return "";
+  const dic = { second: "segundo", sec: "segundo", minute: "minuto", min: "minuto", hour: "hora", hr: "hora", day: "día", week: "semana", wk: "semana", month: "mes", mo: "mes", year: "año", yr: "año" };
+  const plural = { segundo: "segundos", minuto: "minutos", hora: "horas", día: "días", semana: "semanas", mes: "meses", año: "años" };
+  const m = texto.match(/(\d+)\s+(second|sec|minute|min|hour|hr|day|week|wk|month|mo|year|yr)s?\s+ago/i);
+  if (m) { const n = +m[1], u = dic[m[2].toLowerCase()]; return `hace ${n} ${n === 1 ? u : plural[u]}`; }
+  return texto.replace(/^Streamed\s*/i, "").replace(/^Premiered\s*/i, "");
+}
+function miniaturaDe(id, calidad = "mqdefault") { return `https://i.ytimg.com/vi/${encodeURIComponent(id)}/${calidad}.jpg`; }
+function colorDe(nombre) { let h = 0; for (const c of nombre || "") h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h}, 55%, 45%)`; }
+function avatarHtml(nombre, url, clase = "avatar") {
+  const inicial = escapar((nombre || "?").charAt(0).toUpperCase());
+  const img = url ? `<img src="${escapar(url)}" alt="" loading="lazy" onerror="this.remove()">` : "";
+  return `<span class="${clase}" style="background:${colorDe(nombre)}">${img}${inicial}</span>`;
+}
+function duracionIso(iso) { // PT1H2M3S -> segundos (API oficial)
+  const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || "");
+  return m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : 0;
+}
+
+// ============================================================
+//  Acceso a datos: Piped (sin clave) o API oficial (con clave)
+// ============================================================
+async function pedirJson(url, ms = 8000) {
+  const control = new AbortController();
+  const temporizador = setTimeout(() => control.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: control.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } finally { clearTimeout(temporizador); }
+}
+
+// Llama a Piped probando varios servidores hasta que uno responda
+async function piped(ruta) {
+  const candidatos = [instanciaActiva, ...INSTANCIAS.filter(i => i !== instanciaActiva)].slice(0, 4);
+  let ultimoError;
+  for (const base of candidatos) {
+    try {
+      const datos = await pedirJson(base + ruta);
+      if (datos && datos.error) throw new Error(datos.error);
+      if (base !== instanciaActiva) { instanciaActiva = base; guardarLocal(CLAVES.instancia, base); pintarNotaFuente(); }
+      return datos;
+    } catch (e) { ultimoError = e; }
+  }
+  throw ultimoError || new Error("Ningún servidor respondió");
+}
+
+// Convierte cualquier resultado a un formato común
+function normalizarPiped(x) {
+  const id = (x.url || "").match(/v=([\w-]+)/)?.[1];
+  if (x.type === "channel") {
+    return { tipo: "canal", id: (x.url || "").replace("/channel/", ""), nombre: x.name, avatar: x.thumbnail, suscriptores: x.subscribers, videos: x.videos, descripcion: x.description, verificado: x.verified };
+  }
+  if (x.type === "playlist") {
+    return { tipo: "lista", id: (x.url || "").match(/list=([\w-]+)/)?.[1], titulo: x.name, miniatura: x.thumbnail, canal: x.uploaderName, videos: x.videos };
+  }
+  return {
+    tipo: "video", id, titulo: x.title, canal: x.uploaderName, canalId: (x.uploaderUrl || "").replace("/channel/", ""),
+    avatar: x.uploaderAvatar, verificado: x.uploaderVerified, miniatura: id ? miniaturaDe(id) : x.thumbnail, miniaturaAlt: x.thumbnail,
+    duracion: x.duration,
+    // Piped marca los directos con duración -1 y sin fecha; en "relacionados" también usa -1 para vídeos normales, por eso se mira la fecha
+    directo: x.duration === -1 && !(x.uploaded > 0) && !/ago/i.test(x.uploadedDate || ""),
+    vistas: x.views, subido: x.uploaded > 0 ? x.uploaded : null, subidoTexto: x.uploadedDate, short: !!x.isShort,
+  };
+}
+
+function normalizarOficial(item, detalle) {
+  const sn = item.snippet || {};
+  return {
+    tipo: "video", id: item.id?.videoId || item.id, titulo: sn.title, canal: sn.channelTitle, canalId: sn.channelId,
+    miniatura: miniaturaDe(item.id?.videoId || item.id), duracion: duracionIso(detalle?.contentDetails?.duration),
+    directo: sn.liveBroadcastContent === "live", vistas: detalle ? +detalle.statistics?.viewCount : null,
+    subido: Date.parse(sn.publishedAt), short: false,
+  };
+}
+
+const FECHAS_MS = { hora: 3600e3, hoy: 86400e3, semana: 7 * 86400e3, mes: 30 * 86400e3, anio: 365 * 86400e3 };
+
+// Búsqueda con la API oficial (cuando hay clave): filtros exactos de fecha y orden
+async function buscarOficial(consulta, filtros, pagina) {
+  const orden = { relevancia: "relevance", recientes: "date", vistas: "viewCount" }[filtros.orden] || "relevance";
+  const p = new URLSearchParams({ part: "snippet", type: "video", maxResults: "25", q: consulta, order: orden, regionCode: ajustes.region, relevanceLanguage: "es", key: ajustes.clave, safeSearch: "none" });
+  if (FECHAS_MS[filtros.fecha]) p.set("publishedAfter", new Date(Date.now() - FECHAS_MS[filtros.fecha]).toISOString());
+  if (pagina) p.set("pageToken", pagina);
+  const r = await pedirJson("https://www.googleapis.com/youtube/v3/search?" + p);
+  const ids = (r.items || []).map(i => i.id.videoId).filter(Boolean);
+  let detalles = {};
+  if (ids.length) {
+    const d = await pedirJson(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids.join(",")}&key=${ajustes.clave}`);
+    for (const v of d.items || []) detalles[v.id] = v;
+  }
+  return { items: (r.items || []).map(i => normalizarOficial(i, detalles[i.id.videoId])), siguiente: r.nextPageToken || null, fuente: "YouTube Data API" };
+}
+
+// Búsqueda con Piped (sin clave)
+async function buscarPiped(consulta, filtros, pagina) {
+  const filtro = { videos: "videos", canales: "channels", listas: "playlists", todo: "all" }[filtros.tipo] || "videos";
+  const q = encodeURIComponent(consulta);
+  const r = pagina
+    ? await piped(`/nextpage/search?q=${q}&filter=${filtro}&nextpage=${encodeURIComponent(pagina)}`)
+    : await piped(`/search?q=${q}&filter=${filtro}`);
+  return { items: (r.items || []).map(normalizarPiped), siguiente: r.nextpage || null, corregido: r.corrected ? r.suggestion : null, fuente: "Piped" };
+}
+
+async function buscar(consulta, filtros, pagina) {
+  if (ajustes.clave && filtros.tipo === "videos") {
+    try { return await buscarOficial(consulta, filtros, pagina); }
+    catch (e) { console.warn("API oficial falló, se usa Piped:", e); }
+  }
+  return buscarPiped(consulta, filtros, pagina);
+}
+
+// ---- Shorts: se obtienen de la pestaña "Shorts" de cada canal (la búsqueda no los devuelve) ----
+const SHORTS_CACHE_MS = 30 * 60 * 1000;
+let feedShorts = leerLocal("mitube-feed-shorts", []); // lista que recorre el reproductor vertical
+
+function normalizarShort(x, canal) {
+  const id = (x.url || "").match(/v=([\w-]+)/)?.[1];
+  return {
+    tipo: "short", id, titulo: x.title, canal: x.uploaderName || canal.nombre, canalId: canal.id, short: true,
+    vistas: x.views, subido: x.uploaded > 0 ? x.uploaded : null, subidoTexto: x.uploadedDate,
+    miniatura: id ? `https://i.ytimg.com/vi/${id}/oar2.jpg` : x.thumbnail, miniaturaAlt: x.thumbnail || (id ? miniaturaDe(id, "hqdefault") : ""),
+  };
+}
+// Devuelve { canal, items, siguiente, data } con la primera página de Shorts de un canal (con caché de 30 min)
+async function shortsDeCanal(id) {
+  const clave = "mitube-shorts-" + id;
+  const cache = leerLocal(clave, null);
+  if (cache && Date.now() - cache.t < SHORTS_CACHE_MS) return cache.valor;
+  const c = await piped(`/channel/${encodeURIComponent(id)}`);
+  const canal = { id, nombre: c.name, avatar: c.avatarUrl };
+  const tab = (c.tabs || []).find(t => t.name === "shorts");
+  let valor = { canal, items: [], siguiente: null, data: null };
+  if (tab) {
+    const r = await piped(`/channels/tabs?data=${encodeURIComponent(tab.data)}`);
+    valor = { canal, items: (r.content || []).map(x => normalizarShort(x, canal)).filter(v => v.id), siguiente: r.nextpage || null, data: tab.data };
+  }
+  guardarLocal(clave, { t: Date.now(), valor });
+  return valor;
+}
+async function masShortsDeCanal(data, nextpage, canal) {
+  const r = await piped(`/channels/tabs?data=${encodeURIComponent(data)}&nextpage=${encodeURIComponent(nextpage)}`);
+  return { items: (r.content || []).map(x => normalizarShort(x, canal)).filter(v => v.id), siguiente: r.nextpage || null };
+}
+function fijarFeedShorts(lista) { feedShorts = lista.map(v => ({ id: v.id, titulo: v.titulo, canal: v.canal, canalId: v.canalId, vistas: v.vistas })); guardarLocal("mitube-feed-shorts", feedShorts); }
+
+// ============================================================
+//  Historial y búsquedas recientes
+// ============================================================
+function anotarHistorial(video) {
+  const h = leerLocal(CLAVES.historial, []).filter(v => v.id !== video.id);
+  h.unshift({ id: video.id, titulo: video.titulo, canal: video.canal, canalId: video.canalId, duracion: video.duracion, visto: Date.now() });
+  guardarLocal(CLAVES.historial, h.slice(0, 300));
+}
+function anotarBusqueda(q) {
+  const b = leerLocal(CLAVES.busquedas, []).filter(x => x.toLowerCase() !== q.toLowerCase());
+  b.unshift(q); guardarLocal(CLAVES.busquedas, b.slice(0, 8)); pintarRecientes();
+}
+function pintarRecientes() {
+  const b = leerLocal(CLAVES.busquedas, []);
+  document.getElementById("recientes").innerHTML = b.length
+    ? b.map(q => `<a class="item" href="#/buscar?q=${encodeURIComponent(q)}"><span class="ico">🕘</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapar(q)}</span></a>`).join("")
+    : `<p class="nota">Aquí aparecerán tus últimas búsquedas.</p>`;
+}
+function pintarNotaFuente() {
+  document.getElementById("nota-fuente").textContent = ajustes.clave
+    ? "Búsquedas: YouTube Data API · Datos: " + instanciaActiva.replace("https://", "")
+    : "Datos: " + instanciaActiva.replace("https://", "");
+}
+
+// ============================================================
+//  Piezas de interfaz
+// ============================================================
+function tarjetaVideo(v) {
+  const etiqueta = v.directo ? `<span class="duracion directo">EN DIRECTO</span>` : (v.duracion > 0 ? `<span class="duracion">${formatoDuracion(v.duracion)}</span>` : "");
+  const meta = [v.vistas != null && v.vistas >= 0 ? formatoNumero(v.vistas) + " visualizaciones" : "", haceCuanto(v.subido, v.subidoTexto)].filter(Boolean).join(" · ");
+  return `
+    <article class="tarjeta" data-ir="#/ver/${encodeURIComponent(v.id)}">
+      <div class="miniatura"><img src="${escapar(v.miniatura)}" alt="" loading="lazy"${v.miniaturaAlt ? ` onerror="this.onerror=null;this.src='${escapar(v.miniaturaAlt)}'"` : ""}>${etiqueta}</div>
+      <div class="datos">
+        ${v.canalId ? `<a href="#/canal/${encodeURIComponent(v.canalId)}" data-detener>${avatarHtml(v.canal, v.avatar)}</a>` : avatarHtml(v.canal, v.avatar)}
+        <div>
+          <h2>${escapar(v.titulo)}</h2>
+          <p>${escapar(v.canal || "")}${v.verificado ? '<span class="verificado">✔</span>' : ""}</p>
+          <p>${escapar(meta)}</p>
+        </div>
+      </div>
+    </article>`;
+}
+function tarjetaCanal(c) {
+  return `
+    <div class="tarjeta-canal" data-ir="#/canal/${encodeURIComponent(c.id)}">
+      ${avatarHtml(c.nombre, c.avatar)}
+      <div>
+        <h2>${escapar(c.nombre)}${c.verificado ? '<span class="verificado">✔</span>' : ""}</h2>
+        <p>${[c.suscriptores >= 0 ? formatoNumero(c.suscriptores) + " suscriptores" : "", c.videos >= 0 ? c.videos + " vídeos" : ""].filter(Boolean).join(" · ")}</p>
+        <p>${escapar((c.descripcion || "").slice(0, 160))}</p>
+      </div>
+    </div>`;
+}
+function tarjetaLista(l) {
+  return `
+    <article class="tarjeta" data-ir="#/lista/${encodeURIComponent(l.id)}">
+      <div class="miniatura"><img src="${escapar(l.miniatura)}" alt="" loading="lazy"><span class="duracion">≡ ${l.videos >= 0 ? l.videos + " vídeos" : "Lista"}</span></div>
+      <div class="datos"><div><h2>${escapar(l.titulo)}</h2><p>${escapar(l.canal || "")} · Lista de reproducción</p></div></div>
+    </article>`;
+}
+function tarjetaShort(v) {
+  const alt = v.miniaturaAlt ? ` onerror="this.onerror=null;this.src='${escapar(v.miniaturaAlt)}'"` : "";
+  return `
+    <article class="tarjeta-short" data-short="${escapar(v.id)}">
+      <div class="miniatura"><img src="${escapar(v.miniatura)}" alt="" loading="lazy"${alt}></div>
+      <h2>${escapar(v.titulo)}</h2>
+      <p>${escapar(v.canal || "")}</p>
+      <p>${escapar(v.vistas >= 0 ? formatoNumero(v.vistas) + " visualizaciones" : "")}</p>
+    </article>`;
+}
+function tarjeta(x) { return x.tipo === "canal" ? tarjetaCanal(x) : x.tipo === "lista" ? tarjetaLista(x) : x.tipo === "short" ? tarjetaShort(x) : tarjetaVideo(x); }
+function miniVideo(v) {
+  return `
+    <div class="mini" data-ir="#/ver/${encodeURIComponent(v.id)}">
+      <div class="miniatura"><img src="${escapar(v.miniatura)}" alt="" loading="lazy">${v.duracion > 0 ? `<span class="duracion">${formatoDuracion(v.duracion)}</span>` : (v.directo ? `<span class="duracion directo">DIRECTO</span>` : "")}</div>
+      <div><h4>${escapar(v.titulo)}</h4><p>${escapar(v.canal || "")}</p><p>${escapar([v.vistas >= 0 ? formatoNumero(v.vistas) + " vis." : "", haceCuanto(v.subido, v.subidoTexto)].filter(Boolean).join(" · "))}</p></div>
+    </div>`;
+}
+function activarClics(raiz) {
+  raiz.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => {
+    if (e.target.closest("[data-detener]")) return; // el avatar lleva a su propio enlace
+    location.hash = el.dataset.ir;
+  }));
+}
+function mostrarError(contenedor, error, reintentar) {
+  contenedor.innerHTML = `<div class="vacio"><h2>No se pudo cargar</h2><p>${escapar(error?.message || error)}</p>
+    <p>Comprueba tu conexión o cambia el servidor de datos en ⚙️ Ajustes.</p>${reintentar ? `<button class="pildora" id="reintentar">Reintentar</button>` : ""}</div>`;
+  if (reintentar) document.getElementById("reintentar").addEventListener("click", reintentar);
+}
+const contenido = document.getElementById("contenido");
+
+// ---- Refresco automático ligero: una petición cada pocos minutos, solo con la pestaña visible ----
+const REFRESCO_MS = 3 * 60 * 1000;
+let temporizadorRefresco = null, funcionRefresco = null;
+function programarRefresco(fn) {
+  cancelarRefresco();
+  funcionRefresco = fn;
+  temporizadorRefresco = setInterval(() => { if (document.visibilityState === "visible" && funcionRefresco) funcionRefresco(); }, REFRESCO_MS);
+}
+function cancelarRefresco() { clearInterval(temporizadorRefresco); temporizadorRefresco = null; funcionRefresco = null; }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && funcionRefresco) funcionRefresco(); });
+function pintarHoraRefresco(contenedor) {
+  const hora = new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  let el = contenedor.querySelector(".hora-refresco");
+  if (!el) { el = document.createElement("p"); el.className = "nota hora-refresco"; contenedor.querySelector("h1.titulo")?.after(el); }
+  el.textContent = `Actualizado a las ${hora} · se renueva solo cada ${REFRESCO_MS / 60000} min`;
+}
+// Añade al principio de una rejilla los vídeos que aún no estaban, sin tocar el resto
+function insertarNuevos(rejilla, nuevos, idsConocidos) {
+  const frescos = nuevos.filter(v => v.id && !idsConocidos.has(v.tipo + ":" + v.id));
+  if (!frescos.length) return 0;
+  frescos.forEach(v => idsConocidos.add(v.tipo + ":" + v.id));
+  const plantilla = document.createElement("div");
+  plantilla.innerHTML = frescos.map(tarjeta).join("");
+  const elementos = [...plantilla.children];
+  elementos.forEach(el => { el.classList.add("nuevo"); rejilla.prepend(el); });
+  activarClics(rejilla);
+  return elementos.length;
+}
+
+// ============================================================
+//  Vistas
+// ============================================================
+async function vistaInicio() {
+  contenido.innerHTML = `<h1 class="titulo">Tendencias en ${escapar(document.querySelector(`#aj-region option[value="${ajustes.region}"]`)?.textContent || ajustes.region)}</h1><div class="cargando">Cargando…</div>`;
+  try {
+    const r = await piped(`/trending?region=${encodeURIComponent(ajustes.region)}`);
+    const videos = r.map(normalizarPiped).filter(v => ajustes.shorts || !v.short);
+    contenido.querySelector(".cargando").outerHTML = `<div class="rejilla" id="tendencias">${videos.map(tarjetaVideo).join("")}</div>`;
+    activarClics(contenido);
+    pintarHoraRefresco(contenido);
+    const conocidos = new Set(videos.map(v => "video:" + v.id));
+    programarRefresco(async () => {
+      try {
+        const nuevos = (await piped(`/trending?region=${encodeURIComponent(ajustes.region)}`)).map(normalizarPiped).filter(v => ajustes.shorts || !v.short);
+        const rejilla = document.getElementById("tendencias");
+        if (rejilla) { insertarNuevos(rejilla, nuevos, conocidos); pintarHoraRefresco(contenido); }
+      } catch { /* se reintenta en el siguiente ciclo */ }
+    });
+  } catch (e) { mostrarError(contenido, e, vistaInicio); }
+}
+
+const filtrosPorDefecto = { tipo: "videos", orden: "relevancia", fecha: "cualquiera" };
+
+async function vistaBuscar(parametros) {
+  const q = (parametros.get("q") || "").trim();
+  const filtros = { tipo: parametros.get("tipo") || "videos", orden: parametros.get("orden") || "relevancia", fecha: parametros.get("fecha") || "cualquiera" };
+  document.getElementById("busqueda").value = q;
+  if (!q) { location.hash = "#/"; return; }
+  anotarBusqueda(q);
+
+  const enlaceFiltro = (clave, valor) => { const p = new URLSearchParams(parametros); p.set(clave, valor); return "#/buscar?" + p.toString(); };
+  const grupo = (clave, opciones) => `<div class="grupo">${opciones.map(([v, n]) => `<a class="chip ${filtros[clave] === v ? "activo" : ""}" href="${enlaceFiltro(clave, v)}">${n}</a>`).join("")}</div>`;
+  contenido.innerHTML = `
+    <h1 class="titulo">Resultados para “${escapar(q)}”</h1>
+    <div class="filtros">
+      ${grupo("tipo", [["videos", "Vídeos"], ["canales", "Canales"], ["listas", "Listas"], ["todo", "Todo"]])}
+      ${filtros.tipo === "videos" ? `<span class="separador"></span>
+      ${grupo("orden", [["relevancia", "Relevancia"], ["recientes", "Más recientes"], ["vistas", "Más vistos"]])}
+      <span class="separador"></span>
+      ${grupo("fecha", [["cualquiera", "Cualquier fecha"], ["hora", "Última hora"], ["hoy", "Hoy"], ["semana", "Esta semana"], ["mes", "Este mes"]])}` : ""}
+    </div>
+    <div id="aviso"></div>
+    <div class="rejilla" id="resultados"></div>
+    <div class="cargando" id="cargando">Buscando…</div>`;
+
+  const resultados = document.getElementById("resultados");
+  const cargando = document.getElementById("cargando");
+  let siguiente = null, acumulados = [], vistos = new Set();
+
+  const aplicarFiltrosLocales = lista => {
+    if (filtros.tipo !== "videos") return lista;
+    let l = lista.filter(v => v.tipo !== "video" || ajustes.shorts || !v.short);
+    if (FECHAS_MS[filtros.fecha]) { const limite = Date.now() - FECHAS_MS[filtros.fecha]; l = l.filter(v => v.directo || (v.subido && v.subido >= limite)); }
+    if (filtros.orden === "recientes") l.sort((a, b) => (b.subido || 0) - (a.subido || 0));
+    if (filtros.orden === "vistas") l.sort((a, b) => (b.vistas || 0) - (a.vistas || 0));
+    return l;
+  };
+  const pintar = () => {
+    const lista = aplicarFiltrosLocales(acumulados);
+    resultados.innerHTML = lista.length ? lista.map(tarjeta).join("") : "";
+    activarClics(resultados);
+    if (!lista.length && !siguiente) resultados.innerHTML = `<div class="vacio" style="grid-column:1/-1"><h2>Sin resultados</h2><p>Prueba con otras palabras o amplía el filtro de fecha.</p></div>`;
+  };
+
+  async function cargarPagina() {
+    cargando.style.display = "";
+    try {
+      const r = await buscar(q, filtros, siguiente);
+      siguiente = r.siguiente;
+      for (const x of r.items) { const clave = x.tipo + ":" + x.id; if (x.id && !vistos.has(clave)) { vistos.add(clave); acumulados.push(x); } }
+      if (r.corregido && !acumulados.length) document.getElementById("aviso").innerHTML = `<div class="aviso">¿Quisiste decir <a href="#/buscar?q=${encodeURIComponent(r.corregido)}"><b>${escapar(r.corregido)}</b></a>?</div>`;
+      if (!ajustes.clave && filtros.tipo === "videos" && (filtros.orden !== "relevancia" || filtros.fecha !== "cualquiera") && !document.getElementById("aviso").innerHTML) {
+        document.getElementById("aviso").innerHTML = `<div class="aviso">Sin clave de API, el orden y el filtro de fecha se aplican sobre los resultados descargados (pulsa "Cargar más" para ampliar). Para resultados exactos añade una clave en ⚙️ Ajustes.</div>`;
+      }
+      pintar();
+      cargando.style.display = "none";
+      document.getElementById("boton-mas")?.remove();
+      if (siguiente) {
+        const boton = document.createElement("button");
+        boton.className = "mas"; boton.id = "boton-mas"; boton.textContent = "Cargar más";
+        boton.addEventListener("click", () => { boton.remove(); cargarPagina(); });
+        cargando.after(boton);
+      }
+    } catch (e) {
+      if (!acumulados.length) mostrarError(contenido, e, () => vistaBuscar(parametros)); else cargando.textContent = "No se pudieron cargar más resultados.";
+    }
+  }
+  await cargarPagina();
+  // Con filtros locales de fecha u orden, traemos un par de páginas extra para que el resultado sea más fiable
+  if (!ajustes.clave && filtros.tipo === "videos" && (filtros.orden === "recientes" || FECHAS_MS[filtros.fecha])) {
+    for (let i = 0; i < 2 && siguiente; i++) { document.getElementById("boton-mas")?.remove(); await cargarPagina(); }
+  }
+  if (acumulados.length) pintarHoraRefresco(contenido);
+  // Refresco en segundo plano: se repite la primera página y se añaden arriba los vídeos que no estaban
+  programarRefresco(async () => {
+    try {
+      const r = await buscar(q, filtros, null);
+      if (!document.getElementById("resultados")) return;
+      const limite = FECHAS_MS[filtros.fecha] ? Date.now() - FECHAS_MS[filtros.fecha] : 0;
+      const nuevos = r.items.filter(x => x.tipo !== "video" || ((ajustes.shorts || !x.short) && (!limite || x.directo || (x.subido && x.subido >= limite))));
+      const añadidos = insertarNuevos(document.getElementById("resultados"), nuevos, vistos);
+      if (añadidos) acumulados.unshift(...nuevos.filter(x => document.querySelector(`#resultados [data-ir="#/ver/${encodeURIComponent(x.id)}"]`)).slice(0, añadidos));
+      pintarHoraRefresco(contenido);
+    } catch { /* se reintenta en el siguiente ciclo */ }
+  });
+}
+
+// --- Reproductor -------------------------------------------------
+let reproductor = null, apiYoutubeLista = null, siguienteVideo = null;
+function cargarApiYoutube() {
+  if (apiYoutubeLista) return apiYoutubeLista;
+  apiYoutubeLista = new Promise(resolver => {
+    if (window.YT && window.YT.Player) return resolver(true);
+    window.onYouTubeIframeAPIReady = () => resolver(true);
+    const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; s.onerror = () => resolver(false);
+    document.head.appendChild(s);
+    setTimeout(() => resolver(false), 6000);
+  });
+  return apiYoutubeLista;
+}
+function descripcionAHtml(html) {
+  // Piped devuelve HTML; nos quedamos con el texto y volvemos a crear los enlaces de forma segura
+  const doc = new DOMParser().parseFromString((html || "").replace(/<br\s*\/?>/gi, "\n"), "text/html");
+  const texto = doc.body.textContent || "";
+  return escapar(texto).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`)
+    .replace(/(^|\s)#([\p{L}\p{N}_]+)/gu, (m, pre, tag) => `${pre}<a href="#/buscar?q=${encodeURIComponent("#" + tag)}">#${tag}</a>`);
+}
+
+// Datos de un vídeo: API oficial (con clave) → Piped → oEmbed de YouTube como último recurso
+async function obtenerDetalles(id) {
+  const relacionadosPorTitulo = async titulo => {
+    try { return (await buscarPiped(titulo, { tipo: "videos" })).items.filter(v => v.id && v.id !== id); } catch { return []; }
+  };
+  if (ajustes.clave) {
+    try {
+      const r = await pedirJson(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails,liveStreamingDetails&id=${encodeURIComponent(id)}&key=${ajustes.clave}`);
+      const v = r.items?.[0]; if (!v) throw new Error("Vídeo no encontrado");
+      return {
+        titulo: v.snippet.title, canal: v.snippet.channelTitle, canalId: v.snippet.channelId, avatar: "", verificado: false,
+        vistas: +v.statistics.viewCount, likes: v.statistics.likeCount != null ? +v.statistics.likeCount : -1, subido: Date.parse(v.snippet.publishedAt),
+        descripcion: escapar(v.snippet.description || ""), directo: v.snippet.liveBroadcastContent === "live",
+        relacionados: await relacionadosPorTitulo(v.snippet.title), fuente: "YouTube Data API",
+      };
+    } catch (e) { console.warn("API oficial falló:", e); }
+  }
+  try {
+    const d = await piped(`/streams/${encodeURIComponent(id)}`);
+    return {
+      titulo: d.title, canal: d.uploader, canalId: (d.uploaderUrl || "").replace("/channel/", ""), avatar: d.uploaderAvatar, verificado: d.uploaderVerified,
+      suscriptores: d.uploaderSubscriberCount, vistas: d.views, likes: d.likes, subido: d.uploaded, fechaTexto: d.uploadDate,
+      descripcion: descripcionAHtml(d.description), directo: d.livestream,
+      relacionados: (d.relatedStreams || []).filter(x => x.type === "stream").map(normalizarPiped).filter(v => v.id), fuente: "Piped",
+    };
+  } catch (e) { console.warn("Piped no pudo dar los datos del vídeo:", e); }
+  // oEmbed oficial: solo título y canal, pero casi nunca falla
+  const o = await pedirJson(`https://www.youtube.com/oembed?url=${encodeURIComponent("https://www.youtube.com/watch?v=" + id)}&format=json`);
+  return {
+    titulo: o.title, canal: o.author_name, canalId: "", canalUrl: o.author_url, avatar: "", verificado: false, vistas: -1, likes: -1, subido: null,
+    descripcion: "", directo: false, relacionados: await relacionadosPorTitulo(o.title), fuente: "oEmbed", parcial: true,
+  };
+}
+
+async function vistaVer(id) {
+  contenido.innerHTML = `
+    <div class="reproductor">
+      <div>
+        <div class="marco"><div id="player"></div></div>
+        ${location.protocol === "file:" ? `<div class="aviso" style="margin-top:12px">YouTube no permite reproducir si la página se abre como archivo local (error 153). Usa la dirección publicada de la página o sírvela con <code>python3 -m http.server</code>.</div>` : ""}
+        <div id="detalle"><div class="cargando">Cargando información…</div></div>
+      </div>
+      <aside class="lista-lateral"><h3>A continuación</h3><div id="relacionados"></div></aside>
+    </div>`;
+  const sigueAqui = () => decodeURIComponent(location.hash).startsWith("#/ver/" + id);
+
+  // Primero el vídeo (lo importante), con la API de YouTube para poder encadenar el siguiente
+  const conApi = await cargarApiYoutube();
+  if (!sigueAqui()) return; // el usuario ya cambió de vídeo
+  if (conApi) {
+    if (reproductor) { try { reproductor.destroy(); } catch {} }
+    reproductor = new YT.Player("player", {
+      videoId: id, host: "https://www.youtube-nocookie.com",
+      playerVars: { autoplay: 1, rel: 0, hl: "es", playsinline: 1 },
+      events: { onStateChange: e => { if (e.data === YT.PlayerState.ENDED && ajustes.autoplay && siguienteVideo) location.hash = "#/ver/" + encodeURIComponent(siguienteVideo); } },
+    });
+  } else {
+    document.getElementById("player").outerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0&hl=es" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  }
+
+  // Después, los datos del vídeo y los relacionados
+  try {
+    const d = await obtenerDetalles(id);
+    if (!sigueAqui()) return;
+    anotarHistorial({ id, titulo: d.titulo, canal: d.canal, canalId: d.canalId, duracion: 0 });
+    document.title = d.titulo + " · MiTube";
+    const relacionados = d.relacionados.filter(v => ajustes.shorts || !v.short);
+    siguienteVideo = relacionados[0]?.id || null;
+    const fecha = d.subido > 0 ? new Date(d.subido).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }) : (d.fechaTexto || "");
+    const enlaceCanal = d.canalId ? `#/canal/${encodeURIComponent(d.canalId)}` : (d.canalUrl || "#");
+    const destinoCanal = d.canalId ? "" : `target="_blank" rel="noopener"`;
+    document.getElementById("detalle").innerHTML = `
+      <h1>${escapar(d.titulo)}</h1>
+      <div class="fila-canal">
+        <a href="${escapar(enlaceCanal)}" ${destinoCanal}>${avatarHtml(d.canal, d.avatar)}</a>
+        <div>
+          <a class="nombre-canal" href="${escapar(enlaceCanal)}" ${destinoCanal}>${escapar(d.canal)}${d.verificado ? '<span class="verificado">✔</span>' : ""}</a>
+          <div class="sub">${d.suscriptores >= 0 ? formatoNumero(d.suscriptores) + " suscriptores" : ""}</div>
+        </div>
+        <div class="acciones">
+          ${d.likes >= 0 ? `<span class="pildora">👍 ${formatoNumero(d.likes)}</span>` : ""}
+          <button class="pildora" id="boton-siguiente" ${siguienteVideo ? "" : "disabled"}>Siguiente ▸</button>
+          <button class="pildora" id="boton-compartir">Compartir</button>
+          <a class="pildora" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">YouTube ↗</a>
+        </div>
+      </div>
+      ${d.parcial ? `<div class="aviso">El servidor de datos no ha respondido para este vídeo: se muestra la información básica. Puedes cambiar de servidor en ⚙️ Ajustes.</div>` : ""}
+      <div class="descripcion" id="descripcion">
+        <div class="meta">${[d.vistas >= 0 ? formatoNumero(d.vistas) + " visualizaciones" : "", fecha, d.directo ? "EN DIRECTO" : ""].filter(Boolean).join(" · ")}</div>${d.descripcion || "Sin descripción."}
+        <div class="ver-mas">…más</div>
+      </div>`;
+    document.getElementById("relacionados").innerHTML = relacionados.map(miniVideo).join("") || `<p class="nota">No hay vídeos relacionados.</p>`;
+    activarClics(contenido);
+    document.getElementById("descripcion").addEventListener("click", e => { if (e.target.tagName !== "A") e.currentTarget.classList.toggle("abierta"); });
+    document.getElementById("boton-siguiente").addEventListener("click", () => { if (siguienteVideo) location.hash = "#/ver/" + encodeURIComponent(siguienteVideo); });
+    document.getElementById("boton-compartir").addEventListener("click", async e => {
+      const url = location.href;
+      try { await navigator.clipboard.writeText(url); e.target.textContent = "¡Enlace copiado!"; } catch { prompt("Copia el enlace:", url); }
+      setTimeout(() => { e.target.textContent = "Compartir"; }, 2000);
+    });
+  } catch (e) {
+    if (!sigueAqui()) return;
+    document.getElementById("detalle").innerHTML = `<p class="nota" style="padding:12px 0">No se pudo cargar la información del vídeo (${escapar(e.message)}). El vídeo se reproduce igualmente.</p>`;
+  }
+}
+
+// --- Shorts: feed -----------------------------------------------------
+async function vistaShorts() {
+  contenido.innerHTML = `<h1 class="titulo">Shorts</h1><div class="cargando">Buscando Shorts en tus canales y en los de las tendencias…</div>`;
+  try {
+    // Canales de origen: los de tu historial (lo que ves) y los de las tendencias de tu región
+    const delHistorial = [...new Set(leerLocal(CLAVES.historial, []).map(v => v.canalId).filter(Boolean))].slice(0, 5);
+    let deTendencias = [];
+    try { deTendencias = [...new Set((await piped(`/trending?region=${encodeURIComponent(ajustes.region)}`)).map(x => (x.uploaderUrl || "").replace("/channel/", "")).filter(Boolean))]; } catch {}
+    const canales = [...new Set([...delHistorial, ...deTendencias])].slice(0, 10);
+    const resultados = await Promise.allSettled(canales.map(shortsDeCanal));
+    const porCanal = resultados.filter(r => r.status === "fulfilled" && r.value.items.length).map(r => r.value);
+    if (!porCanal.length) {
+      contenido.innerHTML = `<h1 class="titulo">Shorts</h1><div class="vacio"><h2>No se han encontrado Shorts</h2><p>Mira algún vídeo o entra en un canal: en su página tienes una pestaña "Shorts". Aquí se irán juntando los Shorts de los canales que veas y de las tendencias.</p></div>`;
+      return;
+    }
+    // Se intercalan los canales para que el feed sea variado
+    const lista = [];
+    for (let i = 0; lista.length < 80; i++) {
+      let quedan = false;
+      for (const c of porCanal) { if (c.items[i]) { lista.push(c.items[i]); quedan = true; } }
+      if (!quedan) break;
+    }
+    const chips = porCanal.map(c => `<button class="chip" data-canal="${escapar(c.canal.id)}">${escapar(c.canal.nombre)}</button>`).join("");
+    contenido.innerHTML = `
+      <h1 class="titulo">Shorts</h1>
+      <div class="filtros"><button class="chip activo" data-canal="">Todos</button>${chips}</div>
+      <div class="rejilla-shorts" id="rejilla-shorts"></div>`;
+    const rejilla = document.getElementById("rejilla-shorts");
+    const pintarLista = filtro => {
+      const visibles = filtro ? lista.filter(v => v.canalId === filtro) : lista;
+      rejilla.innerHTML = visibles.map(tarjetaShort).join("");
+      rejilla.querySelectorAll("[data-short]").forEach(el => el.addEventListener("click", () => { fijarFeedShorts(visibles); location.hash = "#/short/" + encodeURIComponent(el.dataset.short); }));
+    };
+    pintarLista("");
+    contenido.querySelectorAll(".filtros .chip").forEach(ch => ch.addEventListener("click", () => {
+      contenido.querySelectorAll(".filtros .chip").forEach(x => x.classList.toggle("activo", x === ch));
+      pintarLista(ch.dataset.canal);
+    }));
+  } catch (e) { mostrarError(contenido, e, vistaShorts); }
+}
+
+// --- Shorts: reproductor vertical -------------------------------------
+async function vistaShort(id) {
+  let indice = feedShorts.findIndex(v => v.id === id);
+  if (indice < 0) { feedShorts = [{ id }]; indice = 0; } // enlace directo a un Short que no está en el feed
+  const actual = feedShorts[indice], anterior = feedShorts[indice - 1], siguiente = feedShorts[indice + 1];
+  siguienteVideo = siguiente?.id || null;
+  contenido.innerHTML = `
+    <div class="short-vista">
+      <div class="short-marco"><div id="player"></div></div>
+      <div class="short-controles">
+        <button class="boton-redondo" id="short-anterior" title="Anterior (↑)" ${anterior ? "" : "disabled"}>▲</button>
+        <button class="boton-redondo" id="short-siguiente" title="Siguiente (↓)" ${siguiente ? "" : "disabled"}>▼</button>
+      </div>
+    </div>
+    <div class="short-info" id="short-info">
+      <h1>${escapar(actual.titulo || "")}</h1>
+      <div class="fila-canal">
+        ${actual.canalId ? `<a class="nombre-canal" href="#/canal/${encodeURIComponent(actual.canalId)}">${escapar(actual.canal || "")}</a>` : ""}
+        <span class="sub">${actual.vistas >= 0 ? formatoNumero(actual.vistas) + " visualizaciones" : ""}</span>
+        <div class="acciones">
+          <a class="pildora" href="https://www.youtube.com/shorts/${encodeURIComponent(id)}" target="_blank" rel="noopener">YouTube ↗</a>
+        </div>
+      </div>
+      <span class="short-contador">${feedShorts.length > 1 ? `${indice + 1} de ${feedShorts.length} · ↑ ↓ para cambiar · Esc para volver` : "Esc para volver"}</span>
+    </div>`;
+  const ir = v => { if (v) location.hash = "#/short/" + encodeURIComponent(v.id); };
+  document.getElementById("short-anterior").addEventListener("click", () => ir(anterior));
+  document.getElementById("short-siguiente").addEventListener("click", () => ir(siguiente));
+
+  const conApi = await cargarApiYoutube();
+  if (!decodeURIComponent(location.hash).startsWith("#/short/" + id)) return;
+  if (conApi) {
+    if (reproductor) { try { reproductor.destroy(); } catch {} }
+    reproductor = new YT.Player("player", {
+      videoId: id, host: "https://www.youtube-nocookie.com",
+      playerVars: { autoplay: 1, rel: 0, hl: "es", playsinline: 1, loop: siguiente ? 0 : 1, playlist: siguiente ? undefined : id },
+      events: { onStateChange: e => { if (e.data === YT.PlayerState.ENDED && ajustes.autoplay) ir(siguiente); } },
+    });
+  } else {
+    document.getElementById("player").outerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0&hl=es&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  }
+  // Si llegamos por enlace directo, completamos el título con los datos del vídeo
+  if (!actual.titulo) {
+    try {
+      const d = await obtenerDetalles(id);
+      if (!decodeURIComponent(location.hash).startsWith("#/short/" + id)) return;
+      Object.assign(actual, { titulo: d.titulo, canal: d.canal, canalId: d.canalId, vistas: d.vistas });
+      document.querySelector("#short-info h1").textContent = d.titulo;
+      anotarHistorial({ id, titulo: d.titulo, canal: d.canal, canalId: d.canalId, duracion: 0 });
+    } catch {}
+  } else anotarHistorial({ id, titulo: actual.titulo, canal: actual.canal, canalId: actual.canalId, duracion: 0 });
+  document.title = (actual.titulo || "Short") + " · MiTube";
+}
+
+// --- Canal --------------------------------------------------------
+async function vistaCanal(id) {
+  contenido.innerHTML = `<div class="cargando">Cargando canal…</div>`;
+  try {
+    const c = await piped(`/channel/${encodeURIComponent(id)}`);
+    document.title = c.name + " · MiTube";
+    let siguiente = c.nextpage;
+    contenido.innerHTML = `
+      ${c.bannerUrl ? `<img class="banner" src="${escapar(c.bannerUrl)}" alt="" onerror="this.remove()">` : ""}
+      <div class="cabecera-canal">
+        ${avatarHtml(c.name, c.avatarUrl)}
+        <div>
+          <h1>${escapar(c.name)}${c.verified ? '<span class="verificado">✔</span>' : ""}</h1>
+          <p>${c.subscriberCount >= 0 ? formatoNumero(c.subscriberCount) + " suscriptores" : ""}</p>
+          <p class="desc">${escapar(c.description || "")}</p>
+        </div>
+      </div>
+      <div class="filtros" id="pestanas-canal"><button class="chip activo" data-pestana="videos">Vídeos</button>${(c.tabs || []).some(t => t.name === "shorts") ? `<button class="chip" data-pestana="shorts">Shorts</button>` : ""}</div>
+      <div class="rejilla" id="videos-canal"></div>
+      <div class="rejilla-shorts" id="shorts-canal" hidden></div>
+      <div id="pie-canal"></div>`;
+    const rejilla = document.getElementById("videos-canal");
+    const pie = document.getElementById("pie-canal");
+    // Pestaña Shorts del canal
+    const rejillaShorts = document.getElementById("shorts-canal");
+    let shorts = null; // { items, siguiente, data }
+    const pintarShorts = () => {
+      rejillaShorts.innerHTML = shorts.items.map(tarjetaShort).join("") || `<p class="nota" style="grid-column:1/-1">Este canal no tiene Shorts.</p>`;
+      rejillaShorts.querySelectorAll("[data-short]").forEach(el => el.addEventListener("click", () => { fijarFeedShorts(shorts.items); location.hash = "#/short/" + encodeURIComponent(el.dataset.short); }));
+      pie.innerHTML = shorts.siguiente ? `<button class="mas">Cargar más</button>` : "";
+      pie.querySelector("button")?.addEventListener("click", async () => {
+        pie.innerHTML = `<div class="cargando">Cargando…</div>`;
+        try { const r = await masShortsDeCanal(shorts.data, shorts.siguiente, { id, nombre: c.name }); shorts.items.push(...r.items); shorts.siguiente = r.siguiente; }
+        catch { shorts.siguiente = null; }
+        pintarShorts();
+      });
+    };
+    document.querySelectorAll("#pestanas-canal .chip").forEach(ch => ch.addEventListener("click", async () => {
+      document.querySelectorAll("#pestanas-canal .chip").forEach(x => x.classList.toggle("activo", x === ch));
+      const verShorts = ch.dataset.pestana === "shorts";
+      rejilla.hidden = verShorts; rejillaShorts.hidden = !verShorts;
+      contenido.querySelectorAll(".aviso").forEach(a => { a.hidden = verShorts; });
+      if (!verShorts) { ponerBoton(); return; }
+      if (!shorts) {
+        pie.innerHTML = ""; rejillaShorts.innerHTML = `<div class="cargando" style="grid-column:1/-1">Cargando Shorts…</div>`;
+        try { const r = await shortsDeCanal(id); shorts = { items: r.items.slice(), siguiente: r.siguiente, data: r.data }; }
+        catch (e) { rejillaShorts.innerHTML = `<p class="nota" style="grid-column:1/-1">No se pudieron cargar los Shorts (${escapar(e.message)}).</p>`; return; }
+      }
+      pintarShorts();
+    }));
+
+    // Vídeos del canal
+    const añadir = lista => { rejilla.insertAdjacentHTML("beforeend", lista.map(normalizarPiped).filter(v => v.id && (ajustes.shorts || !v.short)).map(tarjetaVideo).join("")); activarClics(rejilla); };
+    añadir(c.relatedStreams || []);
+    if (!rejilla.children.length) {
+      // El servidor no ha devuelto la lista de vídeos: buscamos por el nombre del canal y nos quedamos con los suyos
+      let respaldo = [];
+      if (ajustes.clave) {
+        try {
+          const r = await pedirJson(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&maxResults=25&channelId=${encodeURIComponent(id)}&key=${ajustes.clave}`);
+          respaldo = (r.items || []).map(i => normalizarOficial(i));
+        } catch {}
+      }
+      if (!respaldo.length) {
+        try { respaldo = (await buscarPiped(c.name, { tipo: "videos" })).items.filter(v => v.canalId === id); } catch {}
+      }
+      if (respaldo.length) {
+        rejilla.insertAdjacentHTML("beforeend", respaldo.filter(v => ajustes.shorts || !v.short).map(tarjetaVideo).join(""));
+        activarClics(rejilla);
+        rejilla.insertAdjacentHTML("beforebegin", `<div class="aviso">El servidor de datos no ha devuelto la lista completa del canal; se muestran los vídeos encontrados mediante búsqueda.</div>`);
+      } else {
+        rejilla.insertAdjacentHTML("beforebegin", `<div class="aviso">No se pudieron cargar los vídeos del canal ahora mismo. Prueba más tarde o cambia el servidor en ⚙️ Ajustes.</div>`);
+      }
+    }
+    function ponerBoton() {
+      pie.innerHTML = siguiente ? `<button class="mas">Cargar más</button>` : "";
+      pie.querySelector("button")?.addEventListener("click", async () => {
+        pie.innerHTML = `<div class="cargando">Cargando…</div>`;
+        try { const r = await piped(`/nextpage/channel/${encodeURIComponent(id)}?nextpage=${encodeURIComponent(siguiente)}`); siguiente = r.nextpage; añadir(r.relatedStreams || []); }
+        catch { siguiente = null; }
+        ponerBoton();
+      });
+    }
+    ponerBoton();
+
+  } catch (e) { mostrarError(contenido, e, () => vistaCanal(id)); }
+}
+
+// --- Lista de reproducción ------------------------------------------
+async function vistaLista(id) {
+  contenido.innerHTML = `<div class="cargando">Cargando lista…</div>`;
+  try {
+    const l = await piped(`/playlists/${encodeURIComponent(id)}`);
+    document.title = l.name + " · MiTube";
+    const videos = (l.relatedStreams || []).map(normalizarPiped).filter(v => v.id);
+    contenido.innerHTML = `
+      <h1 class="titulo">${escapar(l.name)}</h1>
+      <p class="nota" style="margin:-8px 0 20px">${escapar(l.uploader || "")} · ${l.videos >= 0 ? l.videos + " vídeos" : ""}</p>
+      <div class="rejilla">${videos.map(tarjetaVideo).join("")}</div>`;
+    activarClics(contenido);
+  } catch (e) { mostrarError(contenido, e, () => vistaLista(id)); }
+}
+
+// --- Historial --------------------------------------------------------
+function vistaHistorial() {
+  const h = leerLocal(CLAVES.historial, []);
+  contenido.innerHTML = `<h1 class="titulo">Historial</h1>` + (h.length
+    ? `<div class="rejilla">${h.map(v => tarjetaVideo({ ...v, miniatura: miniaturaDe(v.id), subido: v.visto })).join("")}</div>`
+    : `<div class="vacio"><h2>Todavía no has visto nada</h2><p>Los vídeos que reproduzcas aparecerán aquí. Se guardan solo en este navegador.</p></div>`);
+  activarClics(contenido);
+}
+
+// ============================================================
+//  Enrutador: la parte de la dirección tras "#" decide qué se muestra
+// ============================================================
+function enrutar() {
+  const hash = location.hash.replace(/^#\/?/, "");
+  const [ruta, consulta] = hash.split("?");
+  const parametros = new URLSearchParams(consulta || "");
+  const partes = ruta.split("/");
+  document.getElementById("lateral").classList.remove("abierta");
+  document.querySelectorAll("nav .item").forEach(a => a.classList.toggle("activo", a.getAttribute("href") === "#/" + ruta));
+  document.title = "MiTube · Buscador y reproductor de vídeos de YouTube sin cuenta";
+  cancelarRefresco();
+  if (reproductor && partes[0] !== "ver" && partes[0] !== "short") { try { reproductor.destroy(); } catch {} reproductor = null; }
+  if (partes[0] !== "buscar") document.getElementById("busqueda").value = "";
+  window.scrollTo(0, 0);
+
+  switch (partes[0]) {
+    case "": case "tendencias": vistaInicio(); break;
+    case "buscar": vistaBuscar(parametros); break;
+    case "ver": vistaVer(decodeURIComponent(partes[1] || "")); break;
+    case "shorts": vistaShorts(); break;
+    case "short": vistaShort(decodeURIComponent(partes[1] || "")); break;
+    case "canal": vistaCanal(decodeURIComponent(partes[1] || "")); break;
+    case "lista": vistaLista(decodeURIComponent(partes[1] || "")); break;
+    case "historial": vistaHistorial(); break;
+    default: location.hash = "#/";
+  }
+}
+window.addEventListener("hashchange", enrutar);
+
+// ============================================================
+//  Buscador con sugerencias
+// ============================================================
+const campo = document.getElementById("busqueda"), cajaSug = document.getElementById("sugerencias");
+let temporizadorSug = null, sugerencias = [], marcada = -1;
+function irABuscar(q) {
+  q = q.trim(); if (!q) return;
+  cajaSug.classList.remove("visible"); campo.blur();
+  // Si pegan un enlace de YouTube, abrimos directamente el vídeo
+  const id = q.match(/(?:youtu\.be\/|v=|\/shorts\/|\/live\/)([\w-]{11})/)?.[1];
+  if (id) { location.hash = "#/ver/" + id; return; }
+  const p = new URLSearchParams(location.hash.includes("?") ? location.hash.split("?")[1] : "");
+  const nuevo = new URLSearchParams({ q });
+  for (const k of ["tipo", "orden", "fecha"]) if (p.get(k)) nuevo.set(k, p.get(k));
+  const destino = "#/buscar?" + nuevo.toString();
+  if (location.hash === destino) enrutar(); else location.hash = destino;
+}
+document.getElementById("form-busqueda").addEventListener("submit", e => { e.preventDefault(); irABuscar(marcada >= 0 ? sugerencias[marcada] : campo.value); marcada = -1; });
+campo.addEventListener("input", () => {
+  clearTimeout(temporizadorSug); marcada = -1;
+  const q = campo.value.trim();
+  if (q.length < 2) { cajaSug.classList.remove("visible"); return; }
+  temporizadorSug = setTimeout(async () => {
+    try {
+      sugerencias = (await piped(`/suggestions?query=${encodeURIComponent(q)}`)).slice(0, 8);
+      if (campo.value.trim() !== q || !sugerencias.length || document.activeElement !== campo) { cajaSug.classList.remove("visible"); return; }
+      cajaSug.innerHTML = sugerencias.map(s => `<div>${escapar(s)}</div>`).join("");
+      cajaSug.classList.add("visible");
+      cajaSug.querySelectorAll("div").forEach((d, i) => d.addEventListener("mousedown", () => { campo.value = sugerencias[i]; irABuscar(sugerencias[i]); }));
+    } catch { cajaSug.classList.remove("visible"); }
+  }, 250);
+});
+campo.addEventListener("keydown", e => {
+  if (!cajaSug.classList.contains("visible")) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    marcada = (marcada + (e.key === "ArrowDown" ? 1 : -1) + sugerencias.length) % sugerencias.length;
+    cajaSug.querySelectorAll("div").forEach((d, i) => d.classList.toggle("marcada", i === marcada));
+    campo.value = sugerencias[marcada];
+  }
+});
+campo.addEventListener("blur", () => setTimeout(() => cajaSug.classList.remove("visible"), 150));
+
+// ============================================================
+//  Teclado, menú y ajustes
+// ============================================================
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") { if (e.key === "Escape") e.target.blur(); return; }
+  if (e.key === "/") { e.preventDefault(); campo.focus(); }
+  if (e.key === "Escape" && location.hash.startsWith("#/ver/")) history.back();
+  if (e.key === "Escape" && location.hash.startsWith("#/short/")) location.hash = "#/shorts";
+  if (e.key.toLowerCase() === "n" && location.hash.startsWith("#/ver/") && siguienteVideo) location.hash = "#/ver/" + encodeURIComponent(siguienteVideo);
+  if (location.hash.startsWith("#/short/") && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key.toLowerCase() === "n")) {
+    e.preventDefault();
+    const boton = document.getElementById(e.key === "ArrowUp" ? "short-anterior" : "short-siguiente");
+    if (boton && !boton.disabled) boton.click();
+  }
+});
+document.getElementById("boton-menu").addEventListener("click", () => document.getElementById("lateral").classList.toggle("abierta"));
+
+const dialogo = document.getElementById("ajustes");
+document.getElementById("lista-instancias").innerHTML = INSTANCIAS.map(i => `<option value="${i}">`).join("");
+document.getElementById("boton-ajustes").addEventListener("click", () => {
+  document.getElementById("aj-region").value = ajustes.region;
+  document.getElementById("aj-instancia").value = ajustes.instancia || instanciaActiva;
+  document.getElementById("aj-clave").value = ajustes.clave;
+  document.getElementById("aj-autoplay").checked = ajustes.autoplay;
+  document.getElementById("aj-shorts").checked = ajustes.shorts;
+  dialogo.showModal();
+});
+document.getElementById("aj-cerrar").addEventListener("click", () => {
+  ajustes.region = document.getElementById("aj-region").value;
+  ajustes.instancia = document.getElementById("aj-instancia").value.trim().replace(/\/+$/, "");
+  ajustes.clave = document.getElementById("aj-clave").value.trim();
+  ajustes.autoplay = document.getElementById("aj-autoplay").checked;
+  ajustes.shorts = document.getElementById("aj-shorts").checked;
+  if (ajustes.instancia) instanciaActiva = ajustes.instancia;
+  guardarLocal(CLAVES.ajustes, ajustes);
+  pintarNotaFuente();
+  dialogo.close();
+  enrutar(); // recargar la vista con los ajustes nuevos
+});
+document.getElementById("aj-borrar").addEventListener("click", () => {
+  if (confirm("¿Borrar el historial de vídeos y de búsquedas de este navegador?")) {
+    localStorage.removeItem(CLAVES.historial); localStorage.removeItem(CLAVES.busquedas); pintarRecientes(); dialogo.close(); enrutar();
+  }
+});
+
+// ============================================================
+//  Arranque
+// ============================================================
+pintarRecientes();
+pintarNotaFuente();
+enrutar();
+</script>
+</body>
+</html>
