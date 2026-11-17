@@ -155,6 +155,12 @@
     .short-pausa.visible { animation: destello 0.7s ease-out; }
     @keyframes destello { 0% { opacity: 0.9; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.3); } }
     .short-sonido { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2; border: 0; border-radius: 999px; padding: 8px 14px; background: rgba(0,0,0,0.65); color: #fff; font-size: 0.85rem; white-space: nowrap; }
+    .cabecera-recientes { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .enlace-borrar { border: 0; background: none; color: var(--texto-2); font-size: 0.8rem; padding: 4px 6px; cursor: pointer; text-decoration: underline; }
+    .fila-reciente { display: flex; align-items: center; }
+    .fila-reciente .item { flex: 1; min-width: 0; }
+    .quitar-reciente { border: 0; background: none; color: var(--texto-2); font-size: 0.85rem; width: 32px; height: 32px; flex: none; border-radius: 50%; cursor: pointer; }
+    .quitar-reciente:hover { background: var(--fondo-3); }
     .short-controles { display: flex; flex-direction: column; gap: 12px; }
     .boton-redondo { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--fondo-3); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
     .boton-redondo:hover { background: var(--borde); }
@@ -234,7 +240,7 @@
   <a class="item" href="#/shorts"><span class="ico">▯</span>Shorts</a>
   <a class="item" href="#/historial"><span class="ico">📜</span>Historial</a>
   <hr>
-  <h3>Búsquedas recientes</h3>
+  <div class="cabecera-recientes"><h3>Búsquedas recientes</h3><button class="enlace-borrar" id="borrar-busquedas" hidden>Borrar todo</button></div>
   <div id="recientes"></div>
   <hr>
   <p class="nota">Atajos: <kbd>/</kbd> buscar · <kbd>Esc</kbd> volver · <kbd>N</kbd> siguiente vídeo</p>
@@ -481,10 +487,18 @@ function anotarBusqueda(q) {
 }
 function pintarRecientes() {
   const b = leerLocal(CLAVES.busquedas, []);
-  document.getElementById("recientes").innerHTML = b.length
-    ? b.map(q => `<a class="item" href="#/buscar?q=${encodeURIComponent(q)}"><span class="ico">🕘</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapar(q)}</span></a>`).join("")
+  document.getElementById("borrar-busquedas").hidden = !b.length;
+  const caja = document.getElementById("recientes");
+  caja.innerHTML = b.length
+    ? b.map((q, i) => `<div class="fila-reciente"><a class="item" href="#/buscar?q=${encodeURIComponent(q)}"><span class="ico">🕘</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapar(q)}</span></a><button class="quitar-reciente" data-i="${i}" title="Quitar esta búsqueda" aria-label="Quitar esta búsqueda">✕</button></div>`).join("")
     : `<p class="nota">Aquí aparecerán tus últimas búsquedas.</p>`;
+  caja.querySelectorAll(".quitar-reciente").forEach(boton => boton.addEventListener("click", e => {
+    e.preventDefault(); e.stopPropagation();
+    const lista = leerLocal(CLAVES.busquedas, []); lista.splice(Number(boton.dataset.i), 1);
+    guardarLocal(CLAVES.busquedas, lista); pintarRecientes();
+  }));
 }
+document.getElementById("borrar-busquedas").addEventListener("click", () => { localStorage.removeItem(CLAVES.busquedas); pintarRecientes(); });
 function pintarNotaFuente() {
   document.getElementById("nota-fuente").textContent = ajustes.clave
     ? "Búsquedas: YouTube Data API · Datos: " + instanciaActiva.replace("https://", "")
